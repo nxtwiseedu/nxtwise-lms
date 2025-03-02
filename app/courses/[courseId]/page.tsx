@@ -83,7 +83,8 @@ export default function CourseView() {
     );
   }
 
-  const ModuleSection = ({ module }) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const ModuleSection = ({ module }: any) => {
     return (
       <div className="mb-4 group" key={module.id}>
         <button
@@ -127,7 +128,8 @@ export default function CourseView() {
               className="overflow-hidden"
             >
               <div className="pl-10 pr-2 pt-2 pb-1 space-y-1">
-                {module.sections.map((section) => (
+                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                {module.sections.map((section: any) => (
                   <button
                     key={section.id}
                     onClick={() => {
@@ -190,12 +192,6 @@ export default function CourseView() {
             <Calendar size={14} className="mr-1.5" />
             <span>{course.totalSections} lessons</span>
           </div>
-          <Badge
-            variant="outline"
-            className="bg-amber-50 text-amber-600 border-amber-200"
-          >
-            In Progress
-          </Badge>
         </div>
         <div className="mt-2">
           <div className="flex justify-between text-sm font-medium mb-2">
