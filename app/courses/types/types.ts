@@ -4,6 +4,9 @@ export interface Section {
   order: number;
   completed: boolean;
   description?: string;
+  videoId?: string; // Added from mock data
+  createdAt: string; // Added from mock data
+  updatedAt: string; // Added from mock data
 }
 
 export interface Module {
@@ -12,6 +15,9 @@ export interface Module {
   order: number;
   expanded: boolean;
   sections: Section[];
+  description?: string; // Added from mock data
+  createdAt: string; // Added from mock data
+  updatedAt: string; // Added from mock data
 }
 
 export interface Course {

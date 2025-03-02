@@ -1,4 +1,4 @@
-import { Course } from "../CourseLogic";
+import { Course } from "../../types/types";
 
 export const mockCourseData: Course = {
   id: "course123",
