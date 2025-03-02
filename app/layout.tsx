@@ -3,7 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/auth-context";
 import { Toaster } from "sonner";
-import NavBar from "@/components/dashboard/nav-bar";
+import { ClientLayout } from "./ClientLayout";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -25,14 +25,14 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // This is a client component function that determines the current route
   return (
     <html lang="en">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <AuthProvider>
-          <NavBar>{children}</NavBar>
-
+          <ClientLayout>{children}</ClientLayout>
           <Toaster />
         </AuthProvider>
       </body>
