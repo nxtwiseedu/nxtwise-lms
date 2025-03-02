@@ -2,87 +2,111 @@
 
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
-import { mockCourseData } from "./mock/data";
+import { useCourses, Course, Section } from "../course-context";
 
-// Types
-export interface Section {
-  id: string;
-  title: string;
-  videoId: string;
-  description: string;
-  order: number;
-  createdAt: string;
-  updatedAt: string;
-  completed?: boolean;
+interface CourseLogicReturn {
+  course: Course | null;
+  loading: boolean;
+  currentModule: string | null;
+  currentSection: string | null;
+  overallProgress: number;
+  currentSectionData: Section | null;
+  toggleModule: (moduleId: string) => void;
+  changeSection: (moduleId: string, sectionId: string) => void;
+  markAsComplete: (moduleId: string, sectionId: string) => void;
+  goToNextSection: () => void;
+  goToPrevSection: () => void;
 }
 
-export interface Module {
-  id: string;
-  moduleName: string;
-  description: string;
-  order: number;
-  createdAt: string;
-  updatedAt: string;
-  sections: Section[];
-  expanded?: boolean;
-}
-
-export interface Course {
-  id: string;
-  mainTitle: string;
-  description: string;
-  createdAt: string;
-  updatedAt: string;
-  status: string;
-  enrollmentCount: number;
-  moduleCount: number;
-  totalSections: number;
-  modules: Module[];
-}
-
-export const useCourseLogic = () => {
+export function useCourseLogic(): CourseLogicReturn {
   const params = useParams();
-  const courseId = params.courseId as string;
+  const courseId = params?.courseId as string;
 
-  // State management
+  // Get course data from our shared context
+  const {
+    getCourseById,
+    updateCourseData,
+    loading: contextLoading,
+  } = useCourses();
+
   const [course, setCourse] = useState<Course | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState<boolean>(true);
   const [currentModule, setCurrentModule] = useState<string | null>(null);
   const [currentSection, setCurrentSection] = useState<string | null>(null);
-  const [overallProgress, setOverallProgress] = useState(0);
+  const [overallProgress, setOverallProgress] = useState<number>(0);
+  const [currentSectionData, setCurrentSectionData] = useState<Section | null>(
+    null
+  );
+
+  // Calculate overall progress - separated from the useEffect
+  const calculateProgress = (courseData: Course): number => {
+    if (!courseData || !courseData.modules) return 0;
+
+    let completedSections = 0;
+    let totalSections = 0;
+
+    courseData.modules.forEach((module) => {
+      module.sections.forEach((section) => {
+        totalSections++;
+        if (section.completed) completedSections++;
+      });
+    });
+
+    return totalSections > 0 ? (completedSections / totalSections) * 100 : 0;
+  };
 
   // Fetch course data
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchCourse = async () => {
       try {
-        // Mock API call delay
-        await new Promise((resolve) => setTimeout(resolve, 500));
+        // Wait for context to finish loading
+        if (contextLoading) return;
 
-        // Initialize with first section active
-        const firstModule = mockCourseData.modules[0];
-        const firstSection = firstModule.sections[0];
+        // Get course from context
+        const courseData = getCourseById(courseId);
 
-        setCurrentModule(firstModule.id);
-        setCurrentSection(firstSection.id);
-        setCourse(mockCourseData);
+        if (!courseData) {
+          console.error("Course not found");
+          setLoading(false);
+          return;
+        }
 
-        // Calculate completion percentage
-        const totalSections = mockCourseData.totalSections;
-        const completedSections = mockCourseData.modules.reduce(
-          (acc: number, module: Module) =>
-            acc + module.sections.filter((section) => section.completed).length,
-          0
-        );
-        setOverallProgress((completedSections / totalSections) * 100);
+        // Ensure modules and sections are properly structured
+        const processedCourse: Course = {
+          ...courseData,
+          modules: courseData.modules.map((module) => ({
+            ...module,
+            expanded: module.order === 0, // Expand first module by default
+            sections: module.sections.map((section) => ({
+              ...section,
+            })),
+          })),
+        };
+
+        // Calculate progress before setting state
+        const progress = calculateProgress(processedCourse);
+        setOverallProgress(progress);
+
+        setCourse(processedCourse);
+        setLoading(false);
       } catch (error) {
         console.error("Error fetching course:", error);
-      } finally {
         setLoading(false);
       }
     };
 
-    fetchData();
-  }, [courseId]);
+    fetchCourse();
+  }, [courseId, contextLoading, getCourseById]);
+
+  // This effect updates the context when the progress changes,
+  // but only when the course and progress are stable
+  useEffect(() => {
+    // Only update the context when both course and overallProgress are available
+    // and when the course isn't being first loaded (to prevent initial double-update)
+    if (course && !loading && overallProgress !== course.progress) {
+      updateCourseData(courseId, { progress: overallProgress });
+    }
+  }, [course, courseId, loading, overallProgress, updateCourseData]);
 
   // Toggle module expansion
   const toggleModule = (moduleId: string) => {
@@ -90,11 +114,10 @@ export const useCourseLogic = () => {
 
     setCourse({
       ...course,
-      modules: course.modules.map((module) =>
-        module.id === moduleId
-          ? { ...module, expanded: !module.expanded }
-          : module
-      ),
+      modules: course.modules.map((module) => ({
+        ...module,
+        expanded: module.id === moduleId ? !module.expanded : module.expanded,
+      })),
     });
   };
 
@@ -105,79 +128,106 @@ export const useCourseLogic = () => {
     setCurrentModule(moduleId);
     setCurrentSection(sectionId);
 
-    // Expand the module if it's not already expanded
-    if (!course.modules.find((m) => m.id === moduleId)?.expanded) {
-      setCourse({
-        ...course,
-        modules: course.modules.map((module) =>
-          module.id === moduleId ? { ...module, expanded: true } : module
-        ),
-      });
+    // Find current section data
+    // eslint-disable-next-line @next/next/no-assign-module-variable
+    const module = course.modules.find((m) => m.id === moduleId);
+    if (module) {
+      const section = module.sections.find((s) => s.id === sectionId);
+      if (section) {
+        setCurrentSectionData(section);
+      }
     }
+
+    // Expand the module
+    setCourse({
+      ...course,
+      modules: course.modules.map((module) => ({
+        ...module,
+        expanded: module.id === moduleId ? true : module.expanded,
+      })),
+    });
   };
 
   // Mark section as complete
   const markAsComplete = (moduleId: string, sectionId: string) => {
     if (!course) return;
 
-    const updatedCourse = {
+    const updatedCourse: Course = {
       ...course,
-      modules: course.modules.map((module) =>
-        module.id === moduleId
-          ? {
-              ...module,
-              sections: module.sections.map((section) =>
-                section.id === sectionId
-                  ? { ...section, completed: true }
-                  : section
-              ),
-            }
-          : module
-      ),
+      modules: course.modules.map((module) => {
+        if (module.id === moduleId) {
+          return {
+            ...module,
+            sections: module.sections.map((section) => {
+              if (section.id === sectionId) {
+                return { ...section, completed: true };
+              }
+              return section;
+            }),
+          };
+        }
+        return module;
+      }),
     };
 
     setCourse(updatedCourse);
 
-    // Update progress
-    const totalSections = updatedCourse.totalSections;
-    const completedSections = updatedCourse.modules.reduce(
-      (acc, module) =>
-        acc + module.sections.filter((section) => section.completed).length,
-      0
-    );
-    setOverallProgress((completedSections / totalSections) * 100);
+    // Update the current section data
+    // eslint-disable-next-line @next/next/no-assign-module-variable
+    const module = updatedCourse.modules.find((m) => m.id === moduleId);
+    if (module) {
+      const section = module.sections.find((s) => s.id === sectionId);
+      if (section) {
+        setCurrentSectionData(section);
+      }
+    }
+
+    // Calculate and set the new progress - but don't update the context directly from here
+    const newProgress = calculateProgress(updatedCourse);
+    setOverallProgress(newProgress);
   };
 
   // Navigate to next section
   const goToNextSection = () => {
     if (!course || !currentModule || !currentSection) return;
 
-    const flattenedSections = course.modules
-      .flatMap((module) =>
-        module.sections.map((section) => ({
-          moduleId: module.id,
-          section,
-        }))
-      )
-      .sort((a, b) => {
-        // First by module order
-        const moduleA = course.modules.find((m) => m.id === a.moduleId)!;
-        const moduleB = course.modules.find((m) => m.id === b.moduleId)!;
-        if (moduleA.order !== moduleB.order)
-          return moduleA.order - moduleB.order;
+    let foundNextSection = false;
+    let nextModuleId: string | null = null;
+    let nextSectionId: string | null = null;
 
-        // Then by section order
-        return a.section.order - b.section.order;
-      });
+    // Find the next section
+    for (let m = 0; m < course.modules.length; m++) {
+      // eslint-disable-next-line @next/next/no-assign-module-variable
+      const module = course.modules[m];
 
-    const currentIndex = flattenedSections.findIndex(
-      (item) =>
-        item.moduleId === currentModule && item.section.id === currentSection
-    );
+      if (foundNextSection) break;
 
-    if (currentIndex < flattenedSections.length - 1) {
-      const nextItem = flattenedSections[currentIndex + 1];
-      changeSection(nextItem.moduleId, nextItem.section.id);
+      if (module.id === currentModule) {
+        for (let s = 0; s < module.sections.length; s++) {
+          const section = module.sections[s];
+
+          if (section.id === currentSection && s < module.sections.length - 1) {
+            // Next section in same module
+            nextModuleId = module.id;
+            nextSectionId = module.sections[s + 1].id;
+            foundNextSection = true;
+            break;
+          } else if (
+            section.id === currentSection &&
+            m < course.modules.length - 1
+          ) {
+            // First section of next module
+            nextModuleId = course.modules[m + 1].id;
+            nextSectionId = course.modules[m + 1].sections[0].id;
+            foundNextSection = true;
+            break;
+          }
+        }
+      }
+    }
+
+    if (nextModuleId && nextSectionId) {
+      changeSection(nextModuleId, nextSectionId);
     }
   };
 
@@ -185,44 +235,43 @@ export const useCourseLogic = () => {
   const goToPrevSection = () => {
     if (!course || !currentModule || !currentSection) return;
 
-    const flattenedSections = course.modules
-      .flatMap((module) =>
-        module.sections.map((section) => ({
-          moduleId: module.id,
-          section,
-        }))
-      )
-      .sort((a, b) => {
-        // First by module order
-        const moduleA = course.modules.find((m) => m.id === a.moduleId)!;
-        const moduleB = course.modules.find((m) => m.id === b.moduleId)!;
-        if (moduleA.order !== moduleB.order)
-          return moduleA.order - moduleB.order;
+    let foundPrevSection = false;
+    let prevModuleId: string | null = null;
+    let prevSectionId: string | null = null;
 
-        // Then by section order
-        return a.section.order - b.section.order;
-      });
+    // Find the previous section
+    for (let m = 0; m < course.modules.length; m++) {
+      // eslint-disable-next-line @next/next/no-assign-module-variable
+      const module = course.modules[m];
 
-    const currentIndex = flattenedSections.findIndex(
-      (item) =>
-        item.moduleId === currentModule && item.section.id === currentSection
-    );
+      if (foundPrevSection) break;
 
-    if (currentIndex > 0) {
-      const prevItem = flattenedSections[currentIndex - 1];
-      changeSection(prevItem.moduleId, prevItem.section.id);
+      if (module.id === currentModule) {
+        for (let s = 0; s < module.sections.length; s++) {
+          const section = module.sections[s];
+
+          if (section.id === currentSection && s > 0) {
+            // Previous section in same module
+            prevModuleId = module.id;
+            prevSectionId = module.sections[s - 1].id;
+            foundPrevSection = true;
+            break;
+          } else if (section.id === currentSection && s === 0 && m > 0) {
+            // Last section of previous module
+            prevModuleId = course.modules[m - 1].id;
+            const prevModule = course.modules[m - 1];
+            prevSectionId =
+              prevModule.sections[prevModule.sections.length - 1].id;
+            foundPrevSection = true;
+            break;
+          }
+        }
+      }
     }
-  };
 
-  // Get current section data
-  const getCurrentSection = () => {
-    if (!course || !currentModule || !currentSection) return null;
-
-    // eslint-disable-next-line @next/next/no-assign-module-variable
-    const module = course.modules.find((m) => m.id === currentModule);
-    if (!module) return null;
-
-    return module.sections.find((s) => s.id === currentSection) || null;
+    if (prevModuleId && prevSectionId) {
+      changeSection(prevModuleId, prevSectionId);
+    }
   };
 
   return {
@@ -231,11 +280,11 @@ export const useCourseLogic = () => {
     currentModule,
     currentSection,
     overallProgress,
-    currentSectionData: getCurrentSection(),
+    currentSectionData,
     toggleModule,
     changeSection,
     markAsComplete,
     goToNextSection,
     goToPrevSection,
   };
-};
+}

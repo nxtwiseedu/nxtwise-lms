@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { Search, Clock, BookOpen, ChevronRight, Users } from "lucide-react";
 import { motion } from "framer-motion";
@@ -16,118 +16,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-
-// Types
-interface Course {
-  id: string;
-  mainTitle: string;
-  description: string;
-  moduleCount: number;
-  totalSections: number;
-  enrollmentCount: number;
-  progress?: number; // User's progress, if enrolled
-  status: string;
-  createdAt: string;
-  updatedAt: string;
-  thumbnail?: string; // URL to course thumbnail if available
-}
-
-// Mock data - in a real implementation this would be imported from another file
-const mockCourses: Course[] = [
-  {
-    id: "react-masterclass",
-    mainTitle: "React Development Masterclass",
-    description:
-      "Learn modern React development with hooks, context, and best practices for building production-grade applications.",
-    moduleCount: 3,
-    totalSections: 12,
-    enrollmentCount: 457,
-    progress: 25,
-    status: "active",
-    createdAt: "2023-12-01T00:00:00.000Z",
-    updatedAt: "2024-02-15T00:00:00.000Z",
-    thumbnail: "/course-react.jpg",
-  },
-  {
-    id: "nodejs-backend",
-    mainTitle: "Node.js Backend Development",
-    description:
-      "Build scalable backend services using Node.js, Express, and MongoDB. Learn REST API development, authentication, and deployment.",
-    moduleCount: 4,
-    totalSections: 16,
-    enrollmentCount: 342,
-    progress: 0,
-    status: "active",
-    createdAt: "2023-11-15T00:00:00.000Z",
-    updatedAt: "2024-01-20T00:00:00.000Z",
-    thumbnail: "/course-node.jpg",
-  },
-  {
-    id: "typescript-fundamentals",
-    mainTitle: "TypeScript Fundamentals",
-    description:
-      "Master TypeScript from the ground up. Learn type systems, interfaces, generics, and how to integrate TypeScript into your projects.",
-    moduleCount: 2,
-    totalSections: 8,
-    enrollmentCount: 215,
-    progress: 75,
-    status: "active",
-    createdAt: "2024-01-10T00:00:00.000Z",
-    updatedAt: "2024-02-05T00:00:00.000Z",
-    thumbnail: "/course-typescript.jpg",
-  },
-  {
-    id: "nextjs-fullstack",
-    mainTitle: "Next.js Full Stack Development",
-    description:
-      "Create modern web applications with Next.js. Learn routing, data fetching, server components, and full-stack development patterns.",
-    moduleCount: 5,
-    totalSections: 20,
-    enrollmentCount: 178,
-    progress: 50,
-    status: "active",
-    createdAt: "2024-01-20T00:00:00.000Z",
-    updatedAt: "2024-02-28T00:00:00.000Z",
-    thumbnail: "/course-nextjs.jpg",
-  },
-];
+import { useCourses } from "./course-context";
 
 export default function CoursesPage() {
-  const [, setCourses] = useState<Course[]>([]);
-  const [enrolledCourses, setEnrolledCourses] = useState<Course[]>([]);
-  const [availableCourses, setAvailableCourses] = useState<Course[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
-
-  // Simulate fetching courses
-  useEffect(() => {
-    const fetchCourses = async () => {
-      try {
-        // Simulate API delay
-        await new Promise((resolve) => setTimeout(resolve, 500));
-
-        // In a real app, you'd fetch from Firestore
-        setCourses(mockCourses);
-
-        // Split courses into enrolled and available
-        // In this mock, courses with progress > 0 are considered enrolled
-        setEnrolledCourses(
-          mockCourses.filter((course) => course.progress && course.progress > 0)
-        );
-        setAvailableCourses(
-          mockCourses.filter(
-            (course) => !course.progress || course.progress === 0
-          )
-        );
-      } catch (error) {
-        console.error("Error fetching courses:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchCourses();
-  }, []);
+  const { enrolledCourses, availableCourses, loading } = useCourses();
+  const [searchQuery, setSearchQuery] = useState<string>("");
 
   // Filter courses based on search query
   const filteredEnrolled = enrolledCourses.filter(

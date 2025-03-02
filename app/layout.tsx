@@ -4,6 +4,7 @@ import "./globals.css";
 import { AuthProvider } from "@/contexts/auth-context";
 import { Toaster } from "sonner";
 import { ClientLayout } from "./ClientLayout";
+import { CourseProvider } from "./courses/course-context";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,7 +33,9 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <AuthProvider>
-          <ClientLayout>{children}</ClientLayout>
+          <ClientLayout>
+            <CourseProvider>{children}</CourseProvider>
+          </ClientLayout>
           <Toaster />
         </AuthProvider>
       </body>
