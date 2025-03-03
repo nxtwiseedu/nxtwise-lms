@@ -346,38 +346,6 @@ export default function CourseView() {
                     <p className="text-slate-700 leading-relaxed">
                       {currentSectionData.description}
                     </p>
-                    {/* Key takeaways section */}
-                    <div className="mt-6 pt-5 border-t border-slate-200">
-                      <h4 className="font-semibold text-indigo-600 text-lg mb-3">
-                        Key Takeaways
-                      </h4>
-                      <ul className="space-y-2">
-                        <li className="flex items-start">
-                          <span className="inline-flex mr-2 mt-1 w-5 h-5 bg-indigo-100 text-indigo-600 rounded-full items-center justify-center flex-shrink-0">
-                            <Check size={12} />
-                          </span>
-                          <span>
-                            Understanding the core principles from this lesson
-                          </span>
-                        </li>
-                        <li className="flex items-start">
-                          <span className="inline-flex mr-2 mt-1 w-5 h-5 bg-indigo-100 text-indigo-600 rounded-full items-center justify-center flex-shrink-0">
-                            <Check size={12} />
-                          </span>
-                          <span>
-                            How to apply these concepts in real-world scenarios
-                          </span>
-                        </li>
-                        <li className="flex items-start">
-                          <span className="inline-flex mr-2 mt-1 w-5 h-5 bg-indigo-100 text-indigo-600 rounded-full items-center justify-center flex-shrink-0">
-                            <Check size={12} />
-                          </span>
-                          <span>
-                            Practical examples to reinforce your learning
-                          </span>
-                        </li>
-                      </ul>
-                    </div>
                   </div>
                 )}
 
