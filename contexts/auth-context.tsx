@@ -23,28 +23,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   useEffect(() => {
-    // Check if there's a stored token
-    const token = localStorage.getItem("auth-token");
-
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
       setLoading(false);
-
-      // Handle route protection
-      if (!user && !token && pathname !== "/login") {
-        router.push("/login");
-      } else if ((user || token) && pathname === "/login") {
-        router.push("/dashboard");
-      }
     });
 
     return () => unsubscribe();
-  }, [pathname, router]);
+  }, []);
+
+  // Separate effect for navigation after auth state is determined
+  useEffect(() => {
+    if (loading) return; // Don't redirect while still loading
+
+    // Get token from localStorage
+    const token = localStorage.getItem("auth-token");
+    const isAuthRoute = pathname === "/login" || pathname === "/signup";
+
+    // Only redirect if not already on the correct route
+    if (!user && !token && !isAuthRoute && pathname !== "/") {
+      router.push("/login");
+    } else if ((user || token) && isAuthRoute) {
+      router.push("/dashboard");
+    }
+  }, [user, loading, pathname, router]);
 
   return (
     <AuthContext.Provider value={{ user, loading }}>
       {loading ? (
-        // Use your app's styling for loading state
         <div className="h-screen flex items-center justify-center bg-gray-50">
           <div className="w-8 h-8 rounded-full border-2 border-[#004aad] border-t-transparent animate-spin" />
         </div>
