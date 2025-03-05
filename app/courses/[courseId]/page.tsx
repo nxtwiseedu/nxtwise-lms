@@ -16,6 +16,8 @@ import {
   Menu,
   X,
   Calendar,
+  ExternalLink,
+  Lock,
 } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -26,7 +28,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useCourseLogic } from "./CourseLogic";
-// import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
 
 export default function CourseView() {
@@ -45,6 +46,34 @@ export default function CourseView() {
   } = useCourseLogic();
 
   const [showMobileNav, setShowMobileNav] = useState(false);
+
+  // Function to check if a section is accessible
+  const isSectionAccessible = (
+    moduleIndex: number,
+    sectionIndex: number
+  ): boolean => {
+    if (!course) return false;
+
+    // First section of first module is always accessible
+    if (moduleIndex === 0 && sectionIndex === 0) return true;
+
+    // If it's not the first section in a module, check if previous section is completed
+    if (sectionIndex > 0) {
+      const prevSection =
+        course.modules[moduleIndex].sections[sectionIndex - 1];
+      return prevSection.completed;
+    }
+
+    // If it's the first section of a non-first module, check if last section of previous module is completed
+    if (sectionIndex === 0 && moduleIndex > 0) {
+      const prevModule = course.modules[moduleIndex - 1];
+      const lastSectionOfPrevModule =
+        prevModule.sections[prevModule.sections.length - 1];
+      return lastSectionOfPrevModule.completed;
+    }
+
+    return false;
+  };
 
   if (loading) {
     return (
@@ -84,7 +113,7 @@ export default function CourseView() {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const ModuleSection = ({ module }: any) => {
+  const ModuleSection = ({ module, moduleIndex }: any) => {
     return (
       <div className="mb-4 group" key={module.id}>
         <button
@@ -129,42 +158,68 @@ export default function CourseView() {
             >
               <div className="pl-10 pr-2 pt-2 pb-1 space-y-1">
                 {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                {module.sections.map((section: any) => (
-                  <button
-                    key={section.id}
-                    onClick={() => {
-                      changeSection(module.id, section.id);
-                      setShowMobileNav(false);
-                    }}
-                    className={cn(
-                      "flex items-center w-full p-3 rounded-lg text-sm text-left transition-all",
-                      currentSection === section.id
-                        ? "bg-indigo-50 text-indigo-700 font-medium"
-                        : section.completed
-                        ? "text-emerald-600 hover:bg-emerald-50"
-                        : "text-slate-700 hover:bg-slate-50"
-                    )}
-                  >
-                    <div className="mr-3 flex-shrink-0">
-                      {section.completed ? (
-                        <div className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center">
-                          <Check size={14} className="text-emerald-600" />
-                        </div>
-                      ) : currentSection === section.id ? (
-                        <div className="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center">
-                          <Play size={14} className="text-indigo-700 ml-0.5" />
-                        </div>
-                      ) : (
-                        <div className="w-6 h-6 rounded-full border border-slate-200 flex items-center justify-center">
-                          <span className="text-xs font-medium">
-                            {section.order + 1}
-                          </span>
-                        </div>
+                {module.sections.map((section: any, sectionIndex: number) => {
+                  const accessible = isSectionAccessible(
+                    moduleIndex,
+                    sectionIndex
+                  );
+
+                  return (
+                    <button
+                      key={section.id}
+                      onClick={() => {
+                        if (accessible) {
+                          changeSection(module.id, section.id);
+                          setShowMobileNav(false);
+                        }
+                      }}
+                      disabled={!accessible}
+                      className={cn(
+                        "flex items-center w-full p-3 rounded-lg text-sm text-left transition-all",
+                        !accessible
+                          ? "bg-slate-100 text-slate-400 cursor-not-allowed"
+                          : currentSection === section.id
+                          ? "bg-indigo-50 text-indigo-700 font-medium"
+                          : section.completed
+                          ? "text-emerald-600 hover:bg-emerald-50"
+                          : "text-slate-700 hover:bg-slate-50"
                       )}
-                    </div>
-                    <span className="flex-1 truncate">{section.title}</span>
-                  </button>
-                ))}
+                    >
+                      <div className="mr-3 flex-shrink-0">
+                        {!accessible ? (
+                          <div className="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center">
+                            <Lock size={12} className="text-slate-500" />
+                          </div>
+                        ) : section.completed ? (
+                          <div className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center">
+                            <Check size={14} className="text-emerald-600" />
+                          </div>
+                        ) : currentSection === section.id ? (
+                          <div className="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center">
+                            <Play
+                              size={14}
+                              className="text-indigo-700 ml-0.5"
+                            />
+                          </div>
+                        ) : (
+                          <div className="w-6 h-6 rounded-full border border-slate-200 flex items-center justify-center">
+                            <span className="text-xs font-medium">
+                              {section.order + 1}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      <span
+                        className={cn(
+                          "flex-1 truncate",
+                          !accessible && "text-slate-400"
+                        )}
+                      >
+                        {section.title}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             </motion.div>
           )}
@@ -205,15 +260,37 @@ export default function CourseView() {
       </div>
 
       <ScrollArea className="flex-grow px-4 py-2">
-        {course.modules.map((module) => (
-          <ModuleSection key={module.id} module={module} />
+        {course.modules.map((module, moduleIndex) => (
+          <ModuleSection
+            key={module.id}
+            module={module}
+            moduleIndex={moduleIndex}
+          />
         ))}
       </ScrollArea>
     </div>
   );
 
+  // Find current indices for navigation button logic
+  const currentModuleIndex =
+    course?.modules.findIndex((m) => m.id === currentModule) ?? -1;
+  const currentModuleObj =
+    currentModuleIndex >= 0 ? course.modules[currentModuleIndex] : null;
+  const currentSectionIndex =
+    currentModuleObj?.sections.findIndex((s) => s.id === currentSection) ?? -1;
+
+  // Check if there is a next section available
+  const hasNextSection =
+    currentModuleIndex >= 0 &&
+    currentSectionIndex >= 0 &&
+    (currentSectionIndex < (currentModuleObj?.sections.length ?? 0) - 1 ||
+      currentModuleIndex < (course?.modules.length ?? 0) - 1);
+
+  // Next button should be disabled if current section is not completed
+  const nextButtonDisabled = !currentSectionData?.completed || !hasNextSection;
+
   return (
-    <div className="flex flex-col w-screen lg:w-auto  lg:flex-row h-screen bg-slate-50 overflow-x-hidden">
+    <div className="flex flex-col w-screen lg:w-auto lg:flex-row h-screen bg-slate-50 overflow-x-hidden">
       {/* Course Sidebar - Hidden on Mobile, Visible on Desktop */}
       <div className="hidden lg:block w-96 border-r border-slate-200 h-full bg-white overflow-hidden">
         <SidebarContent />
@@ -270,8 +347,8 @@ export default function CourseView() {
       <main className="flex-1 flex flex-col bg-white lg:m-6 lg:rounded-2xl lg:shadow-md overflow-x-hidden">
         {currentSectionData ? (
           <div className="flex flex-col flex-1">
-            {/* Video Player Area */}
-            <div className="bg-gradient-to-br from-slate-900 to-indigo-900 flex items-center justify-center relative min-h-[220px]">
+            {/* Video Button Area - MODIFIED */}
+            <div className="bg-gradient-to-br from-slate-900 to-[#004aad] flex items-center justify-center relative py-12">
               <div className="absolute top-4 right-4 flex space-x-2 z-10">
                 <button className="bg-white/10 hover:bg-white/20 text-white p-2.5 rounded-full transition-all">
                   <Download size={18} />
@@ -284,19 +361,24 @@ export default function CourseView() {
                 </button>
               </div>
 
-              {/* Video placeholder */}
-              <div className="text-white text-center py-20 px-4">
-                <button className="group w-20 h-20 bg-indigo-600 hover:bg-indigo-500 rounded-full flex items-center justify-center transition-all mx-auto mb-6 shadow-lg hover:shadow-indigo-500/30">
-                  <Play
-                    size={32}
-                    className="ml-1 group-hover:scale-110 transition-transform"
-                    strokeWidth={1.5}
-                  />
+              {/* Video button - MODIFIED */}
+              <div className="text-white text-center px-4">
+                <button
+                  className="bg-white text-[#004aad] hover:bg-blue-50 font-medium px-8 py-4 rounded-xl flex items-center justify-center transition-all mx-auto mb-6 shadow-lg"
+                  onClick={() => {
+                    // Logic to open video in new window would be implemented here
+                    // For example: window.open(currentSectionData.videoUrl, '_blank');
+                    window.open("#", "_blank");
+                  }}
+                >
+                  <Play size={20} className="mr-2" />
+                  Open Video in New Window
+                  <ExternalLink size={16} className="ml-2" />
                 </button>
                 <h3 className="text-2xl font-semibold mx-auto">
                   {currentSectionData.title}
                 </h3>
-                <p className="text-indigo-200 mt-3 opacity-80">
+                <p className="text-blue-100 mt-3 opacity-80">
                   Lesson {currentSectionData.order + 1} •{" "}
                   {
                     course.modules.find((m) => m.id === currentModule)
@@ -358,9 +440,7 @@ export default function CourseView() {
                     variant="outline"
                     onClick={goToPrevSection}
                     disabled={
-                      course.modules[0].sections.find(
-                        (s) => s.id === currentSection
-                      ) === course.modules[0].sections[0]
+                      currentModuleIndex === 0 && currentSectionIndex === 0
                     }
                     className="hidden sm:flex items-center border-slate-200 hover:bg-slate-50 hover:text-slate-800 transition-all"
                   >
@@ -373,9 +453,7 @@ export default function CourseView() {
                     variant="outline"
                     onClick={goToPrevSection}
                     disabled={
-                      course.modules[0].sections.find(
-                        (s) => s.id === currentSection
-                      ) === course.modules[0].sections[0]
+                      currentModuleIndex === 0 && currentSectionIndex === 0
                     }
                     className="sm:hidden w-12 h-12 p-0 flex items-center justify-center rounded-lg"
                   >
@@ -411,14 +489,17 @@ export default function CourseView() {
                   {/* Next button */}
                   <Button
                     variant={
-                      currentSectionData.completed ? "default" : "outline"
+                      currentSectionData.completed && hasNextSection
+                        ? "default"
+                        : "outline"
                     }
                     onClick={goToNextSection}
+                    disabled={nextButtonDisabled}
                     className={cn(
                       "hidden sm:flex items-center transition-all",
-                      currentSectionData.completed
+                      currentSectionData.completed && hasNextSection
                         ? "bg-indigo-600 hover:bg-indigo-700 text-white"
-                        : "border-slate-200 hover:bg-slate-50 hover:text-slate-800"
+                        : "border-slate-200 hover:bg-slate-50 hover:text-slate-800 text-slate-400"
                     )}
                   >
                     Next Lesson
@@ -428,12 +509,15 @@ export default function CourseView() {
                   {/* Mobile next button */}
                   <Button
                     variant={
-                      currentSectionData.completed ? "default" : "outline"
+                      currentSectionData.completed && hasNextSection
+                        ? "default"
+                        : "outline"
                     }
                     onClick={goToNextSection}
+                    disabled={nextButtonDisabled}
                     className={cn(
                       "sm:hidden w-12 h-12 p-0 flex items-center justify-center rounded-lg",
-                      currentSectionData.completed
+                      currentSectionData.completed && hasNextSection
                         ? "bg-indigo-600 hover:bg-indigo-700 text-white"
                         : "border-slate-200 hover:bg-slate-50 hover:text-slate-800"
                     )}

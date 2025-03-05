@@ -3,20 +3,23 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Home,
   BookOpen,
   FileText,
   Briefcase,
   Clipboard,
-  ChevronRight,
+  LogOut,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { auth } from "../../app/lib/firebase"; // Import Firebase auth
+import { signOut } from "firebase/auth"; // Import signOut method
+import { useAuth } from "@/contexts/auth-context"; // Import useAuth hook
 
 // Define types for navigation items
 type NavItem = {
@@ -40,6 +43,8 @@ interface NavBarProps {
 
 const NavBar = ({ children }: NavBarProps) => {
   const pathname = usePathname();
+  const router = useRouter();
+  const { user } = useAuth();
   const [mounted, setMounted] = useState(false);
 
   // Prevent hydration mismatch
@@ -48,6 +53,17 @@ const NavBar = ({ children }: NavBarProps) => {
   }, []);
 
   if (!mounted) return null;
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      localStorage.removeItem("auth-token"); // Clear the stored token
+      router.push("/login"); // Redirect to login page
+      console.log("User signed out successfully");
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
+  };
 
   return (
     <>
@@ -177,12 +193,19 @@ const NavBar = ({ children }: NavBarProps) => {
               </Avatar>
               <div className="ml-3">
                 <p className="text-sm font-medium text-gray-900">
-                  Alex Johnson
+                  {user ? user.displayName || "User" : "User"}
                 </p>
-                <p className="text-xs text-gray-500">alex@example.com</p>
+                <p className="text-xs text-gray-500">
+                  {user ? user.email || "user@example.com" : "user@example.com"}
+                </p>
               </div>
-              <Button variant="ghost" size="icon" className="ml-auto">
-                <ChevronRight size={16} className="text-gray-400" />
+              <Button
+                variant="ghost"
+                size="icon"
+                className="ml-auto"
+                onClick={handleLogout}
+              >
+                <LogOut size={16} className="text-gray-400" />
               </Button>
             </div>
           </div>

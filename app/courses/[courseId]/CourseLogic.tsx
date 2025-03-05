@@ -1,8 +1,14 @@
-"use client";
-
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams } from "next/navigation";
 import { useCourses, Course, Section } from "../course-context";
+import { auth } from "../../lib/firebase";
+import {
+  getFirestore,
+  doc,
+  getDoc,
+  setDoc,
+  updateDoc,
+} from "firebase/firestore";
 
 interface CourseLogicReturn {
   course: Course | null;
@@ -22,7 +28,12 @@ export function useCourseLogic(): CourseLogicReturn {
   const params = useParams();
   const courseId = params?.courseId as string;
 
-  // Get course data from our shared context
+  // Use refs for values that shouldn't trigger re-renders
+  const isInitialMount = useRef(true);
+  const isUpdatingProgress = useRef(false);
+  const completedSectionsRef = useRef<string[]>([]);
+  const courseProgressRef = useRef<number>(0);
+
   const {
     getCourseById,
     updateCourseData,
@@ -38,8 +49,8 @@ export function useCourseLogic(): CourseLogicReturn {
     null
   );
 
-  // Calculate overall progress - separated from the useEffect
-  const calculateProgress = (courseData: Course): number => {
+  // Calculate progress without triggering re-renders
+  const calculateProgress = useCallback((courseData: Course): number => {
     if (!courseData || !courseData.modules) return 0;
 
     let completedSections = 0;
@@ -53,40 +64,175 @@ export function useCourseLogic(): CourseLogicReturn {
     });
 
     return totalSections > 0 ? (completedSections / totalSections) * 100 : 0;
-  };
+  }, []);
 
-  // Fetch course data
-  useEffect(() => {
-    const fetchCourse = async () => {
+  // Determine if section is accessible based on completion status
+  const isSectionAccessible = useCallback(
+    (courseData: Course, moduleId: string, sectionId: string): boolean => {
+      if (!courseData) return false;
+
+      // Find the module
+      const moduleIndex = courseData.modules.findIndex(
+        (m) => m.id === moduleId
+      );
+      if (moduleIndex === -1) return false;
+
+      // Find the section
+      const sectionIndex = courseData.modules[moduleIndex].sections.findIndex(
+        (s) => s.id === sectionId
+      );
+      if (sectionIndex === -1) return false;
+
+      // First section of first module is always accessible
+      if (moduleIndex === 0 && sectionIndex === 0) return true;
+
+      // If it's not the first section in a module, check if previous section is completed
+      if (sectionIndex > 0) {
+        const prevSection =
+          courseData.modules[moduleIndex].sections[sectionIndex - 1];
+        return prevSection.completed;
+      }
+
+      // If it's the first section of a non-first module, check if last section of previous module is completed
+      if (sectionIndex === 0 && moduleIndex > 0) {
+        const prevModule = courseData.modules[moduleIndex - 1];
+        const lastSectionOfPrevModule =
+          prevModule.sections[prevModule.sections.length - 1];
+        return lastSectionOfPrevModule.completed;
+      }
+
+      return false;
+    },
+    []
+  );
+
+  // Memoize the update to Firestore to prevent multiple calls
+  const updateProgressInFirestore = useCallback(
+    async (
+      moduleId: string,
+      sectionId: string,
+      completed: boolean,
+      newProgress: number
+    ) => {
+      if (!auth.currentUser || isUpdatingProgress.current) return;
+
       try {
-        // Wait for context to finish loading
+        isUpdatingProgress.current = true;
+        const userId = auth.currentUser.uid;
+        const db = getFirestore();
+        const progressRef = doc(db, "users", userId, "progress", courseId);
+
+        let updatedCompletedSections = [...completedSectionsRef.current];
+
+        if (completed && !updatedCompletedSections.includes(sectionId)) {
+          updatedCompletedSections.push(sectionId);
+        } else if (!completed && updatedCompletedSections.includes(sectionId)) {
+          updatedCompletedSections = updatedCompletedSections.filter(
+            (id) => id !== sectionId
+          );
+        }
+
+        await updateDoc(progressRef, {
+          overallProgress: newProgress,
+          completedSections: updatedCompletedSections,
+          currentModule: moduleId,
+          currentSection: sectionId,
+          updatedAt: new Date().toISOString(),
+        });
+
+        completedSectionsRef.current = updatedCompletedSections;
+      } catch (error) {
+        console.error("Error updating progress in Firestore:", error);
+      } finally {
+        isUpdatingProgress.current = false;
+      }
+    },
+    [courseId]
+  );
+
+  // Initial data fetch - only runs once or when dependencies change
+  useEffect(() => {
+    const fetchCourseAndProgress = async () => {
+      try {
         if (contextLoading) return;
 
-        // Get course from context
         const courseData = getCourseById(courseId);
 
         if (!courseData) {
-          console.error("Course not found");
           setLoading(false);
           return;
         }
 
-        // Ensure modules and sections are properly structured
         const processedCourse: Course = {
           ...courseData,
           modules: courseData.modules.map((module) => ({
             ...module,
-            expanded: module.order === 0, // Expand first module by default
+            expanded: module.order === 0,
             sections: module.sections.map((section) => ({
               ...section,
             })),
           })),
         };
 
-        // Calculate progress before setting state
-        const progress = calculateProgress(processedCourse);
-        setOverallProgress(progress);
+        let initialModule = processedCourse.modules[0]?.id || "";
+        let initialSection = processedCourse.modules[0]?.sections[0]?.id || "";
+        let initialCompletedSections: string[] = [];
 
+        if (auth.currentUser) {
+          const userId = auth.currentUser.uid;
+          const db = getFirestore();
+
+          try {
+            const progressRef = doc(db, "users", userId, "progress", courseId);
+            const progressSnapshot = await getDoc(progressRef);
+
+            if (progressSnapshot.exists()) {
+              const progressData = progressSnapshot.data();
+
+              initialModule = progressData.currentModule || initialModule;
+              initialSection = progressData.currentSection || initialSection;
+              initialCompletedSections = progressData.completedSections || [];
+
+              processedCourse.modules.forEach((module) => {
+                module.sections.forEach((section) => {
+                  section.completed = initialCompletedSections.includes(
+                    section.id
+                  );
+                });
+              });
+
+              const progress =
+                progressData.overallProgress ||
+                calculateProgress(processedCourse);
+              setOverallProgress(progress);
+              courseProgressRef.current = progress;
+            } else {
+              await setDoc(progressRef, {
+                courseId,
+                overallProgress: 0,
+                completedSections: [],
+                currentModule: initialModule,
+                currentSection: initialSection,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+              });
+            }
+          } catch (error) {
+            console.error("Error fetching user progress:", error);
+          }
+        }
+
+        // Do a batched update of all state to reduce render cycles
+        setCurrentModule(initialModule);
+        setCurrentSection(initialSection);
+        completedSectionsRef.current = initialCompletedSections;
+
+        // Calculate and set progress once
+        const calculatedProgress = calculateProgress(processedCourse);
+        setOverallProgress(calculatedProgress);
+        courseProgressRef.current = calculatedProgress;
+
+        // Set course data last
         setCourse(processedCourse);
         setLoading(false);
       } catch (error) {
@@ -95,184 +241,236 @@ export function useCourseLogic(): CourseLogicReturn {
       }
     };
 
-    fetchCourse();
-  }, [courseId, contextLoading, getCourseById]);
+    fetchCourseAndProgress();
+    // Make sure this effect only runs when necessary
+  }, [courseId, contextLoading, getCourseById, calculateProgress]);
 
-  // This effect updates the context when the progress changes,
-  // but only when the course and progress are stable
+  // Update current section data when needed
   useEffect(() => {
-    // Only update the context when both course and overallProgress are available
-    // and when the course isn't being first loaded (to prevent initial double-update)
-    if (course && !loading && overallProgress !== course.progress) {
-      updateCourseData(courseId, { progress: overallProgress });
+    if (!course || !currentModule || !currentSection) {
+      setCurrentSectionData(null);
+      return;
+    }
+
+    // eslint-disable-next-line @next/next/no-assign-module-variable
+    const module = course.modules.find((m) => m.id === currentModule);
+    if (!module) {
+      setCurrentSectionData(null);
+      return;
+    }
+
+    const section = module.sections.find((s) => s.id === currentSection);
+    if (!section) {
+      setCurrentSectionData(null);
+      return;
+    }
+
+    setCurrentSectionData(section);
+  }, [course, currentModule, currentSection]);
+
+  // Update course data in context when progress changes significantly
+  useEffect(() => {
+    // Skip the first render or if we're already processing updates
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+
+    // Only update if there's a significant change to avoid infinite loops
+    if (
+      course &&
+      !loading &&
+      Math.abs(courseProgressRef.current - overallProgress) > 0.1
+    ) {
+      courseProgressRef.current = overallProgress;
+      // Use a timeout to batch this update
+      const timeoutId = setTimeout(() => {
+        if (!isUpdatingProgress.current) {
+          updateCourseData(courseId, { progress: overallProgress });
+        }
+      }, 0);
+
+      return () => clearTimeout(timeoutId);
     }
   }, [course, courseId, loading, overallProgress, updateCourseData]);
 
-  // Toggle module expansion
-  const toggleModule = (moduleId: string) => {
-    if (!course) return;
+  // Toggle module expanded state
+  const toggleModule = useCallback(
+    (moduleId: string) => {
+      if (!course) return;
 
-    setCourse({
-      ...course,
-      modules: course.modules.map((module) => ({
-        ...module,
-        expanded: module.id === moduleId ? !module.expanded : module.expanded,
-      })),
-    });
-  };
-
-  // Change current section
-  const changeSection = (moduleId: string, sectionId: string) => {
-    if (!course) return;
-
-    setCurrentModule(moduleId);
-    setCurrentSection(sectionId);
-
-    // Find current section data
-    // eslint-disable-next-line @next/next/no-assign-module-variable
-    const module = course.modules.find((m) => m.id === moduleId);
-    if (module) {
-      const section = module.sections.find((s) => s.id === sectionId);
-      if (section) {
-        setCurrentSectionData(section);
-      }
-    }
-
-    // Expand the module
-    setCourse({
-      ...course,
-      modules: course.modules.map((module) => ({
-        ...module,
-        expanded: module.id === moduleId ? true : module.expanded,
-      })),
-    });
-  };
-
-  // Mark section as complete
-  const markAsComplete = (moduleId: string, sectionId: string) => {
-    if (!course) return;
-
-    const updatedCourse: Course = {
-      ...course,
-      modules: course.modules.map((module) => {
-        if (module.id === moduleId) {
-          return {
+      setCourse((prevCourse) => {
+        if (!prevCourse) return null;
+        return {
+          ...prevCourse,
+          modules: prevCourse.modules.map((module) => ({
             ...module,
-            sections: module.sections.map((section) => {
-              if (section.id === sectionId) {
-                return { ...section, completed: true };
-              }
-              return section;
-            }),
-          };
-        }
-        return module;
-      }),
-    };
+            expanded:
+              module.id === moduleId ? !module.expanded : module.expanded,
+          })),
+        };
+      });
+    },
+    [course]
+  );
 
-    setCourse(updatedCourse);
+  // Change the current section
+  const changeSection = useCallback(
+    (moduleId: string, sectionId: string) => {
+      if (!course) return;
 
-    // Update the current section data
-    // eslint-disable-next-line @next/next/no-assign-module-variable
-    const module = updatedCourse.modules.find((m) => m.id === moduleId);
-    if (module) {
-      const section = module.sections.find((s) => s.id === sectionId);
-      if (section) {
-        setCurrentSectionData(section);
+      // Check if section is accessible
+      if (!isSectionAccessible(course, moduleId, sectionId)) {
+        // If the section being requested isn't accessible, we don't change
+        return;
       }
-    }
 
-    // Calculate and set the new progress - but don't update the context directly from here
-    const newProgress = calculateProgress(updatedCourse);
-    setOverallProgress(newProgress);
-  };
+      // Batch these updates to reduce render cycles
+      setCurrentModule(moduleId);
+      setCurrentSection(sectionId);
+
+      setCourse((prevCourse) => {
+        if (!prevCourse) return null;
+        return {
+          ...prevCourse,
+          modules: prevCourse.modules.map((module) => ({
+            ...module,
+            expanded: module.id === moduleId ? true : module.expanded,
+          })),
+        };
+      });
+
+      if (auth.currentUser && !isUpdatingProgress.current) {
+        // Use a timeout to ensure state updates settle first
+        setTimeout(() => {
+          updateProgressInFirestore(
+            moduleId,
+            sectionId,
+            false,
+            overallProgress
+          );
+        }, 0);
+      }
+    },
+    [course, overallProgress, updateProgressInFirestore, isSectionAccessible]
+  );
+
+  // Mark a section as complete
+  const markAsComplete = useCallback(
+    (moduleId: string, sectionId: string) => {
+      if (!course) return;
+
+      // Create an updated course object
+      const updatedCourse = {
+        ...course,
+        modules: course.modules.map((module) => {
+          if (module.id === moduleId) {
+            return {
+              ...module,
+              sections: module.sections.map((section) => {
+                if (section.id === sectionId) {
+                  return { ...section, completed: true };
+                }
+                return section;
+              }),
+            };
+          }
+          return module;
+        }),
+      };
+
+      // Calculate new progress before updating state
+      const newProgress = calculateProgress(updatedCourse);
+
+      // Batch updates to reduce render cycles
+      setCourse(updatedCourse);
+      setOverallProgress(newProgress);
+      courseProgressRef.current = newProgress;
+
+      if (auth.currentUser && !isUpdatingProgress.current) {
+        // Use a timeout to ensure state updates settle first
+        setTimeout(() => {
+          updateProgressInFirestore(moduleId, sectionId, true, newProgress);
+        }, 0);
+      }
+    },
+    [course, calculateProgress, updateProgressInFirestore]
+  );
 
   // Navigate to next section
-  const goToNextSection = () => {
+  const goToNextSection = useCallback(() => {
     if (!course || !currentModule || !currentSection) return;
 
-    let foundNextSection = false;
     let nextModuleId: string | null = null;
     let nextSectionId: string | null = null;
 
     // Find the next section
-    for (let m = 0; m < course.modules.length; m++) {
-      // eslint-disable-next-line @next/next/no-assign-module-variable
-      const module = course.modules[m];
+    const currentModuleIndex = course.modules.findIndex(
+      (m) => m.id === currentModule
+    );
+    if (currentModuleIndex === -1) return;
 
-      if (foundNextSection) break;
+    const currentModule_obj = course.modules[currentModuleIndex];
+    const currentSectionIndex = currentModule_obj.sections.findIndex(
+      (s) => s.id === currentSection
+    );
+    if (currentSectionIndex === -1) return;
 
-      if (module.id === currentModule) {
-        for (let s = 0; s < module.sections.length; s++) {
-          const section = module.sections[s];
+    // Verify current section is completed before allowing progress
+    const currentSectionObj = currentModule_obj.sections[currentSectionIndex];
+    if (!currentSectionObj.completed) return;
 
-          if (section.id === currentSection && s < module.sections.length - 1) {
-            // Next section in same module
-            nextModuleId = module.id;
-            nextSectionId = module.sections[s + 1].id;
-            foundNextSection = true;
-            break;
-          } else if (
-            section.id === currentSection &&
-            m < course.modules.length - 1
-          ) {
-            // First section of next module
-            nextModuleId = course.modules[m + 1].id;
-            nextSectionId = course.modules[m + 1].sections[0].id;
-            foundNextSection = true;
-            break;
-          }
-        }
-      }
+    // Check if there's another section in this module
+    if (currentSectionIndex < currentModule_obj.sections.length - 1) {
+      nextModuleId = currentModule;
+      nextSectionId = currentModule_obj.sections[currentSectionIndex + 1].id;
+    }
+    // Otherwise, move to the next module's first section
+    else if (currentModuleIndex < course.modules.length - 1) {
+      nextModuleId = course.modules[currentModuleIndex + 1].id;
+      nextSectionId = course.modules[currentModuleIndex + 1].sections[0].id;
     }
 
     if (nextModuleId && nextSectionId) {
       changeSection(nextModuleId, nextSectionId);
     }
-  };
+  }, [course, currentModule, currentSection, changeSection]);
 
   // Navigate to previous section
-  const goToPrevSection = () => {
+  const goToPrevSection = useCallback(() => {
     if (!course || !currentModule || !currentSection) return;
 
-    let foundPrevSection = false;
     let prevModuleId: string | null = null;
     let prevSectionId: string | null = null;
 
     // Find the previous section
-    for (let m = 0; m < course.modules.length; m++) {
-      // eslint-disable-next-line @next/next/no-assign-module-variable
-      const module = course.modules[m];
+    const currentModuleIndex = course.modules.findIndex(
+      (m) => m.id === currentModule
+    );
+    if (currentModuleIndex === -1) return;
 
-      if (foundPrevSection) break;
+    const currentModule_obj = course.modules[currentModuleIndex];
+    const currentSectionIndex = currentModule_obj.sections.findIndex(
+      (s) => s.id === currentSection
+    );
+    if (currentSectionIndex === -1) return;
 
-      if (module.id === currentModule) {
-        for (let s = 0; s < module.sections.length; s++) {
-          const section = module.sections[s];
-
-          if (section.id === currentSection && s > 0) {
-            // Previous section in same module
-            prevModuleId = module.id;
-            prevSectionId = module.sections[s - 1].id;
-            foundPrevSection = true;
-            break;
-          } else if (section.id === currentSection && s === 0 && m > 0) {
-            // Last section of previous module
-            prevModuleId = course.modules[m - 1].id;
-            const prevModule = course.modules[m - 1];
-            prevSectionId =
-              prevModule.sections[prevModule.sections.length - 1].id;
-            foundPrevSection = true;
-            break;
-          }
-        }
-      }
+    // Check if there's a previous section in this module
+    if (currentSectionIndex > 0) {
+      prevModuleId = currentModule;
+      prevSectionId = currentModule_obj.sections[currentSectionIndex - 1].id;
+    }
+    // Otherwise, move to the previous module's last section
+    else if (currentModuleIndex > 0) {
+      const prevModule = course.modules[currentModuleIndex - 1];
+      prevModuleId = prevModule.id;
+      prevSectionId = prevModule.sections[prevModule.sections.length - 1].id;
     }
 
     if (prevModuleId && prevSectionId) {
       changeSection(prevModuleId, prevSectionId);
     }
-  };
+  }, [course, currentModule, currentSection, changeSection]);
 
   return {
     course,
