@@ -30,7 +30,7 @@ type NavItem = {
 
 // Define navigation items
 const navItems: NavItem[] = [
-  { icon: <Home size={20} />, label: "Home", href: "/" },
+  { icon: <Home size={20} />, label: "Home", href: "/dashboard" }, // Change this to /dashboard
   { icon: <BookOpen size={20} />, label: "Courses", href: "/courses" },
   { icon: <FileText size={20} />, label: "Resume", href: "/resume" },
   { icon: <Briefcase size={20} />, label: "Jobs", href: "/jobs" },

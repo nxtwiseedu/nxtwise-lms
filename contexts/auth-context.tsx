@@ -35,14 +35,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (loading) return; // Don't redirect while still loading
 
+    // Skip redirect for root path - let the server-side redirect handle it
+    if (pathname === "/") return;
+
     // Get token from localStorage
-    const token = localStorage.getItem("auth-token");
+    let token;
+    try {
+      token = localStorage.getItem("auth-token");
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (e) {
+      // Handle case where localStorage is not available
+      token = null;
+    }
+
     const isAuthRoute = pathname === "/login" || pathname === "/signup";
+    const isAuthenticated = user !== null || token !== null;
 
     // Only redirect if not already on the correct route
-    if (!user && !token && !isAuthRoute && pathname !== "/") {
+    if (!isAuthenticated && !isAuthRoute) {
       router.push("/login");
-    } else if ((user || token) && isAuthRoute) {
+    } else if (isAuthenticated && isAuthRoute) {
       router.push("/dashboard");
     }
   }, [user, loading, pathname, router]);
