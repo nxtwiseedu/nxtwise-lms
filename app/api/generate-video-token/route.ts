@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     const TOKEN_SECURITY_KEY = process.env.BUNNY_SECURITY_KEY || "";
 
     // Your Bunny.net library ID
-    const LIBRARY_ID = process.env.BUNNY_LIBRARY_ID || "759";
+    const LIBRARY_ID = process.env.BUNNY_LIBRARY_ID || "225950";
 
     // Set expiration to 2 hours from now (in seconds)
     const expires = Math.floor(Date.now() / 1000) + 7200;
@@ -27,10 +27,6 @@ export async function POST(request: NextRequest) {
     const hashInput = `${TOKEN_SECURITY_KEY}${videoId}${expires}`;
 
     const token = crypto.createHash("sha256").update(hashInput).digest("hex");
-
-    // Debug logging (remove in production)
-    console.log("Hash Input:", hashInput);
-    console.log("Generated Token:", token);
 
     // Return the secure URL
     const secureUrl = `https://iframe.mediadelivery.net/embed/${LIBRARY_ID}/${videoId}?token=${token}&expires=${expires}`;
