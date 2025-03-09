@@ -10,14 +10,10 @@ import {
   ChevronDown,
   ChevronUp,
   BookOpen,
-  Bookmark,
-  Download,
-  Share2,
   Menu,
   X,
-  Calendar,
-  ExternalLink,
   Lock,
+  ExternalLink,
 } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -29,6 +25,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useCourseLogic } from "./CourseLogic";
 import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
+import { Module } from "../course-context";
 
 export default function CourseView() {
   const {
@@ -75,6 +72,7 @@ export default function CourseView() {
     return false;
   };
 
+  // Loading state
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen bg-slate-50">
@@ -88,12 +86,13 @@ export default function CourseView() {
     );
   }
 
+  // Course not found state
   if (!course) {
     return (
       <div className="flex items-center justify-center h-screen bg-slate-50">
         <div className="text-center bg-white p-8 rounded-xl shadow-lg max-w-md mx-4">
-          <div className="w-20 h-20 bg-rose-50 rounded-full flex items-center justify-center mx-auto mb-6">
-            <BookOpen size={32} className="text-rose-500" />
+          <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <BookOpen size={32} className="text-indigo-600" />
           </div>
           <h2 className="text-2xl font-bold text-slate-800 mb-4">
             Course Not Found
@@ -103,7 +102,7 @@ export default function CourseView() {
             don&apos;t have access to it.
           </p>
           <Link href="/courses">
-            <Button className="bg-indigo-600 hover:bg-indigo-700 transition-all w-full py-6">
+            <Button className="bg-indigo-600 hover:bg-indigo-700 transition-all w-full">
               Browse Available Courses
             </Button>
           </Link>
@@ -112,14 +111,19 @@ export default function CourseView() {
     );
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const ModuleSection = ({ module, moduleIndex }: any) => {
+  // Module section component
+  interface ModuleSectionProps {
+    module: Module;
+    moduleIndex: number;
+  }
+
+  const ModuleSection = ({ module, moduleIndex }: ModuleSectionProps) => {
     return (
-      <div className="mb-4 group" key={module.id}>
+      <div className="mb-2" key={module.id}>
         <button
           onClick={() => toggleModule(module.id)}
           className={cn(
-            "flex items-center justify-between w-full rounded-xl p-4 text-left font-medium transition-all",
+            "flex items-center justify-between w-full rounded-lg p-3 text-left font-medium transition-all",
             module.id === currentModule
               ? "bg-indigo-100 text-indigo-700"
               : "hover:bg-slate-100 text-slate-800"
@@ -128,7 +132,7 @@ export default function CourseView() {
           <div className="flex items-center">
             <div
               className={cn(
-                "w-8 h-8 rounded-lg flex items-center justify-center mr-3",
+                "w-7 h-7 rounded-lg flex items-center justify-center mr-3",
                 module.id === currentModule
                   ? "bg-indigo-200 text-indigo-700"
                   : "bg-slate-100 text-slate-600"
@@ -136,13 +140,13 @@ export default function CourseView() {
             >
               <span className="text-sm font-semibold">{module.order + 1}</span>
             </div>
-            <span className="font-medium">{module.moduleName}</span>
+            <span className="font-medium text-sm">{module.moduleName}</span>
           </div>
           <div className="flex items-center">
             {module.expanded ? (
-              <ChevronUp size={18} />
+              <ChevronUp size={16} />
             ) : (
-              <ChevronDown size={18} />
+              <ChevronDown size={16} />
             )}
           </div>
         </button>
@@ -156,9 +160,8 @@ export default function CourseView() {
               transition={{ duration: 0.2 }}
               className="overflow-hidden"
             >
-              <div className="pl-10 pr-2 pt-2 pb-1 space-y-1">
-                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                {module.sections.map((section: any, sectionIndex: number) => {
+              <div className="pl-8 pr-2 pt-1 pb-1 space-y-1">
+                {module.sections.map((section, sectionIndex) => {
                   const accessible = isSectionAccessible(
                     moduleIndex,
                     sectionIndex
@@ -175,7 +178,7 @@ export default function CourseView() {
                       }}
                       disabled={!accessible}
                       className={cn(
-                        "flex items-center w-full p-3 rounded-lg text-sm text-left transition-all",
+                        "flex items-center w-full p-2 rounded-lg text-xs text-left transition-all",
                         !accessible
                           ? "bg-slate-100 text-slate-400 cursor-not-allowed"
                           : currentSection === section.id
@@ -185,24 +188,24 @@ export default function CourseView() {
                           : "text-slate-700 hover:bg-slate-50"
                       )}
                     >
-                      <div className="mr-3 flex-shrink-0">
+                      <div className="mr-2 flex-shrink-0">
                         {!accessible ? (
-                          <div className="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center">
-                            <Lock size={12} className="text-slate-500" />
+                          <div className="w-5 h-5 rounded-full bg-slate-200 flex items-center justify-center">
+                            <Lock size={10} className="text-slate-500" />
                           </div>
                         ) : section.completed ? (
-                          <div className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center">
-                            <Check size={14} className="text-emerald-600" />
+                          <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center">
+                            <Check size={12} className="text-emerald-600" />
                           </div>
                         ) : currentSection === section.id ? (
-                          <div className="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center">
+                          <div className="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center">
                             <Play
-                              size={14}
+                              size={12}
                               className="text-indigo-700 ml-0.5"
                             />
                           </div>
                         ) : (
-                          <div className="w-6 h-6 rounded-full border border-slate-200 flex items-center justify-center">
+                          <div className="w-5 h-5 rounded-full border border-slate-200 flex items-center justify-center">
                             <span className="text-xs font-medium">
                               {section.order + 1}
                             </span>
@@ -231,35 +234,29 @@ export default function CourseView() {
   // Sidebar content component to reuse in both desktop and mobile views
   const SidebarContent = () => (
     <div className="flex flex-col h-full bg-white">
-      <div className="p-6 border-b border-slate-100">
+      <div className="p-4 border-b border-slate-100">
         <Link
           href="/courses"
-          className="flex items-center text-sm text-slate-600 mb-5 hover:text-indigo-600 transition-colors"
+          className="flex items-center text-xs text-slate-600 mb-3 hover:text-indigo-600 transition-colors"
         >
-          <ChevronLeft size={16} className="mr-1" />
+          <ChevronLeft size={14} className="mr-1" />
           Back to All Courses
         </Link>
-        <h1 className="text-xl font-bold text-slate-900 mb-4">
+        <h1 className="text-base font-bold text-slate-900 mb-3">
           {course.mainTitle}
         </h1>
-        <div className="flex items-center space-x-4 text-sm text-slate-500 mb-5">
-          <div className="flex items-center">
-            <Calendar size={14} className="mr-1.5" />
-            <span>{course.totalSections} lessons</span>
-          </div>
-        </div>
         <div className="mt-2">
-          <div className="flex justify-between text-sm font-medium mb-2">
+          <div className="flex justify-between text-xs font-medium mb-1.5">
             <span className="text-slate-700">Your Progress</span>
             <span className="text-indigo-600 font-semibold">
               {Math.round(overallProgress)}%
             </span>
           </div>
-          <Progress value={overallProgress} className="h-2.5 bg-slate-100" />
+          <Progress value={overallProgress} className="h-2 bg-slate-100" />
         </div>
       </div>
 
-      <ScrollArea className="flex-grow px-4 py-2">
+      <ScrollArea className="flex-grow py-2 px-3">
         {course.modules.map((module, moduleIndex) => (
           <ModuleSection
             key={module.id}
@@ -289,10 +286,20 @@ export default function CourseView() {
   // Next button should be disabled if current section is not completed
   const nextButtonDisabled = !currentSectionData?.completed || !hasNextSection;
 
+  // Watch video function
+  const watchVideo = () => {
+    if (currentSectionData?.videoId) {
+      window.open(
+        `https://player.vimeo.com/video/${currentSectionData.videoId}`,
+        "_blank"
+      );
+    }
+  };
+
   return (
-    <div className="flex flex-col w-screen lg:w-auto lg:flex-row h-screen bg-slate-50 overflow-x-hidden">
+    <div className="flex flex-col lg:flex-row h-screen bg-slate-50 overflow-hidden">
       {/* Course Sidebar - Hidden on Mobile, Visible on Desktop */}
-      <div className="hidden lg:block w-96 border-r border-slate-200 h-full bg-white overflow-hidden">
+      <div className="hidden lg:block w-72 border-r border-slate-200 h-full bg-white overflow-hidden">
         <SidebarContent />
       </div>
 
@@ -301,17 +308,17 @@ export default function CourseView() {
         <Drawer open={showMobileNav} onOpenChange={setShowMobileNav}>
           <DrawerTrigger asChild>
             <Button variant="ghost" size="icon" className="lg:hidden">
-              <Menu size={22} />
+              <Menu size={20} />
             </Button>
           </DrawerTrigger>
-          <DrawerContent className="h-[80vh] rounded-t-xl pt-6">
+          <DrawerContent className="h-[80vh] rounded-t-xl pt-4">
             <div className="absolute right-4 top-4">
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => setShowMobileNav(false)}
               >
-                <X size={18} />
+                <X size={16} />
               </Button>
             </div>
             <div className="px-4 pb-8 h-full overflow-auto">
@@ -321,173 +328,152 @@ export default function CourseView() {
         </Drawer>
 
         <div className="flex-1 ml-2">
-          <h2 className="font-bold text-slate-900 truncate">
+          <h2 className="font-bold text-slate-900 truncate text-sm">
             {course.mainTitle}
           </h2>
           <div className="flex items-center text-xs text-slate-500 mt-0.5">
-            <Clock size={12} className="mr-1" />
-            <span className="mr-2">{course.totalSections} lessons</span>
-            <span className="font-medium text-indigo-600">
+            <Clock size={10} className="mr-1" />
+            <span className="mr-2">
               {Math.round(overallProgress)}% complete
             </span>
           </div>
         </div>
 
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center">
           <Badge
             variant="outline"
-            className="bg-amber-50 text-amber-600 border-amber-200 text-xs"
+            className="bg-slate-50 text-slate-700 border-slate-200 text-xs"
           >
-            In Progress
+            {course.totalSections} lessons
           </Badge>
         </div>
       </div>
 
       {/* Content Area */}
-      <main className="flex-1 flex flex-col bg-white lg:m-6 lg:rounded-2xl lg:shadow-md overflow-x-hidden">
+      <main className="flex-1 flex flex-col bg-white lg:rounded-lg lg:m-4 lg:shadow-sm overflow-hidden">
         {currentSectionData ? (
           <div className="flex flex-col flex-1">
-            {/* Video Button Area - MODIFIED */}
-            <div className="bg-gradient-to-br from-slate-900 to-[#004aad] flex items-center justify-center relative py-12">
-              <div className="absolute top-4 right-4 flex space-x-2 z-10">
-                <button className="bg-white/10 hover:bg-white/20 text-white p-2.5 rounded-full transition-all">
-                  <Download size={18} />
-                </button>
-                <button className="bg-white/10 hover:bg-white/20 text-white p-2.5 rounded-full transition-all">
-                  <Bookmark size={18} />
-                </button>
-                <button className="bg-white/10 hover:bg-white/20 text-white p-2.5 rounded-full transition-all">
-                  <Share2 size={18} />
-                </button>
-              </div>
-
-              {/* Video button - MODIFIED */}
-              <div className="text-white text-center px-4">
-                <button
-                  className="bg-white text-[#004aad] hover:bg-blue-50 font-medium px-8 py-4 rounded-xl flex items-center justify-center transition-all mx-auto mb-6 shadow-lg"
-                  onClick={() => {
-                    // Logic to open video in new window would be implemented here
-                    // For example: window.open(currentSectionData.videoUrl, '_blank');
-                    window.open("#", "_blank");
-                  }}
-                >
-                  <Play size={20} className="mr-2" />
-                  Open Video in New Window
-                  <ExternalLink size={16} className="ml-2" />
-                </button>
-                <h3 className="text-2xl font-semibold mx-auto">
+            {/* Header Area with Video Link */}
+            <div className="bg-slate-900 flex items-center px-6 py-5">
+              <div className="flex-1">
+                <h3 className="text-white font-semibold text-lg md:text-xl">
                   {currentSectionData.title}
                 </h3>
-                <p className="text-blue-100 mt-3 opacity-80">
-                  Lesson {currentSectionData.order + 1} •{" "}
+                <p className="text-slate-300 text-xs mt-1">
                   {
                     course.modules.find((m) => m.id === currentModule)
                       ?.moduleName
-                  }
+                  }{" "}
+                  • Lesson {currentSectionData.order + 1}
                 </p>
               </div>
+
+              {currentSectionData.videoId && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="text-xs md:text-sm flex items-center whitespace-nowrap"
+                  onClick={watchVideo}
+                >
+                  <Play size={14} className="mr-1.5" />
+                  Watch Video
+                  <ExternalLink size={12} className="ml-1.5" />
+                </Button>
+              )}
             </div>
 
             {/* Section Content */}
-            <div className="p-4 md:p-8 overflow-auto flex-1">
+            <div className="p-4 md:p-6 overflow-auto flex-1">
               <div className="max-w-full">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6">
-                  <div>
-                    <div className="flex items-center mb-2">
-                      <Badge
-                        className={cn(
-                          "mr-3",
-                          currentSectionData.completed
-                            ? "bg-emerald-50 text-emerald-600 border-emerald-200"
-                            : "bg-amber-50 text-amber-600 border-amber-200"
-                        )}
-                      >
-                        {currentSectionData.completed
-                          ? "Completed"
-                          : "In Progress"}
-                      </Badge>
-                      <div className="flex items-center text-sm text-slate-500">
-                        <Clock size={14} className="mr-1.5" />
-                        <span>10 min</span>
-                      </div>
-                    </div>
-                    <h2 className="text-2xl font-bold text-slate-900 mb-1">
-                      {currentSectionData.title}
-                    </h2>
-                    <p className="text-slate-500">
-                      {
-                        course.modules.find((m) => m.id === currentModule)
-                          ?.moduleName
-                      }
-                    </p>
+                <div className="flex items-center mb-4">
+                  <Badge
+                    className={cn(
+                      "mr-3",
+                      currentSectionData.completed
+                        ? "bg-emerald-50 text-emerald-600 border-emerald-200"
+                        : "bg-amber-50 text-amber-600 border-amber-200"
+                    )}
+                  >
+                    {currentSectionData.completed ? "Completed" : "In Progress"}
+                  </Badge>
+                  <div className="flex items-center text-xs text-slate-500">
+                    <Clock size={12} className="mr-1.5" />
+                    <span>10 min</span>
                   </div>
                 </div>
 
                 {currentSectionData.description && (
-                  <div className="prose prose-slate mb-8 bg-slate-50 p-6 rounded-xl border border-slate-100 max-w-full">
+                  <div className="prose prose-slate mb-8 bg-slate-50 p-4 rounded-lg border border-slate-100 max-w-full text-sm">
                     <p className="text-slate-700 leading-relaxed">
                       {currentSectionData.description}
                     </p>
                   </div>
                 )}
 
-                <Separator className="my-8 bg-slate-200" />
+                <Separator className="my-6 bg-slate-100" />
 
                 {/* Navigation Controls */}
-                <div className="flex items-center justify-between pt-4">
+                <div className="flex items-center justify-between">
                   {/* Previous button */}
                   <Button
                     variant="outline"
+                    size="sm"
                     onClick={goToPrevSection}
                     disabled={
                       currentModuleIndex === 0 && currentSectionIndex === 0
                     }
-                    className="hidden sm:flex items-center border-slate-200 hover:bg-slate-50 hover:text-slate-800 transition-all"
+                    className="hidden sm:flex items-center border-slate-200 hover:bg-slate-50 text-sm"
                   >
-                    <ChevronLeft size={16} className="mr-2" />
-                    Previous Lesson
+                    <ChevronLeft size={14} className="mr-1.5" />
+                    Previous
                   </Button>
 
                   {/* Mobile prev button */}
                   <Button
                     variant="outline"
+                    size="icon"
                     onClick={goToPrevSection}
                     disabled={
                       currentModuleIndex === 0 && currentSectionIndex === 0
                     }
-                    className="sm:hidden w-12 h-12 p-0 flex items-center justify-center rounded-lg"
+                    className="sm:hidden w-9 h-9 p-0 flex items-center justify-center rounded-lg"
                   >
-                    <ChevronLeft size={20} />
+                    <ChevronLeft size={16} />
                   </Button>
 
                   {/* Mark as complete button */}
                   <div className="flex-shrink-0">
                     {!currentSectionData.completed ? (
                       <Button
+                        size="sm"
                         onClick={() =>
                           markAsComplete(currentModule!, currentSection!)
                         }
                         className="bg-indigo-600 hover:bg-indigo-700 transition-all"
                       >
-                        <Check size={16} className="sm:mr-2" />
-                        <span className="hidden sm:inline">
-                          Mark as Complete
+                        <Check size={14} className="sm:mr-1.5" />
+                        <span className="hidden sm:inline text-sm">
+                          Mark Complete
                         </span>
                       </Button>
                     ) : (
                       <Button
+                        size="sm"
                         variant="outline"
                         className="border-emerald-500 text-emerald-600 hover:bg-emerald-50 transition-all"
                         disabled
                       >
-                        <Check size={16} className="sm:mr-2" />
-                        <span className="hidden sm:inline">Completed</span>
+                        <Check size={14} className="sm:mr-1.5" />
+                        <span className="hidden sm:inline text-sm">
+                          Completed
+                        </span>
                       </Button>
                     )}
                   </div>
 
                   {/* Next button */}
                   <Button
+                    size="sm"
                     variant={
                       currentSectionData.completed && hasNextSection
                         ? "default"
@@ -496,14 +482,14 @@ export default function CourseView() {
                     onClick={goToNextSection}
                     disabled={nextButtonDisabled}
                     className={cn(
-                      "hidden sm:flex items-center transition-all",
+                      "hidden sm:flex items-center",
                       currentSectionData.completed && hasNextSection
                         ? "bg-indigo-600 hover:bg-indigo-700 text-white"
-                        : "border-slate-200 hover:bg-slate-50 hover:text-slate-800 text-slate-400"
+                        : "border-slate-200 hover:bg-slate-50 text-slate-400"
                     )}
                   >
-                    Next Lesson
-                    <ChevronRight size={16} className="ml-2" />
+                    Next
+                    <ChevronRight size={14} className="ml-1.5" />
                   </Button>
 
                   {/* Mobile next button */}
@@ -513,38 +499,38 @@ export default function CourseView() {
                         ? "default"
                         : "outline"
                     }
+                    size="icon"
                     onClick={goToNextSection}
                     disabled={nextButtonDisabled}
                     className={cn(
-                      "sm:hidden w-12 h-12 p-0 flex items-center justify-center rounded-lg",
+                      "sm:hidden w-9 h-9 p-0 flex items-center justify-center rounded-lg",
                       currentSectionData.completed && hasNextSection
                         ? "bg-indigo-600 hover:bg-indigo-700 text-white"
                         : "border-slate-200 hover:bg-slate-50 hover:text-slate-800"
                     )}
                   >
-                    <ChevronRight size={20} />
+                    <ChevronRight size={16} />
                   </Button>
                 </div>
               </div>
             </div>
           </div>
         ) : (
-          <div className="flex items-center justify-center h-full bg-slate-50">
-            <div className="text-center p-4 sm:p-8">
-              <div className="w-24 h-24 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-6">
-                <BookOpen size={32} className="text-indigo-600" />
+          <div className="flex items-center justify-center h-full bg-white p-4">
+            <div className="text-center max-w-md">
+              <div className="w-16 h-16 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                <BookOpen size={24} className="text-indigo-600" />
               </div>
-              <h2 className="text-2xl font-bold text-slate-800 mb-3">
+              <h2 className="text-xl font-bold text-slate-800 mb-2">
                 Ready to start learning?
               </h2>
-              <p className="text-slate-600 mb-8">
+              <p className="text-slate-600 mb-6 text-sm">
                 Select a lesson from the course navigation to begin your
                 learning journey.
               </p>
               <Button
-                className="bg-indigo-600 hover:bg-indigo-700 transition-all px-8 py-6"
+                className="bg-indigo-600 hover:bg-indigo-700"
                 onClick={() => {
-                  // Start first lesson logic
                   if (
                     course.modules.length > 0 &&
                     course.modules[0].sections.length > 0

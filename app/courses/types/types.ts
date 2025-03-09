@@ -16,8 +16,8 @@ export interface Module {
   expanded: boolean;
   sections: Section[];
   description?: string; // Added from mock data
-  createdAt: string; // Added from mock data
-  updatedAt: string; // Added from mock data
+  createdAt?: string; // Added from mock data
+  updatedAt?: string; // Added from mock data
 }
 
 export interface Course {
