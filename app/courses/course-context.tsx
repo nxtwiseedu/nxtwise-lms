@@ -14,6 +14,7 @@ import {
   getDoc,
   getDocs,
   updateDoc,
+  setDoc,
 } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "../lib/firebase";
@@ -251,6 +252,18 @@ export function CourseProvider({
             } else {
               // Initialize progress if not exists
               detailedCourse.progress = 0;
+
+              // Create initial progress document
+              await setDoc(progressRef, {
+                courseId: courseData.id,
+                overallProgress: 0,
+                completedSections: [],
+                currentModule: detailedCourse.modules[0]?.id || "",
+                currentSection:
+                  detailedCourse.modules[0]?.sections[0]?.id || "",
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+              });
             }
 
             enrolledCourseData.push(detailedCourse);
@@ -345,13 +358,15 @@ export function CourseProvider({
               updatedAt: new Date().toISOString(),
             });
           } else {
-            // Create new progress document
-            await updateDoc(progressRef, {
+            // Create new progress document - using setDoc instead of updateDoc
+            await setDoc(progressRef, {
               courseId,
               overallProgress: updatedCourseData.progress,
               createdAt: new Date().toISOString(),
               updatedAt: new Date().toISOString(),
               completedSections: [],
+              currentModule: updatedCourse.modules[0]?.id || "",
+              currentSection: updatedCourse.modules[0]?.sections[0]?.id || "",
             });
           }
         }
@@ -433,6 +448,17 @@ export function CourseProvider({
               module.sections.forEach((section) => {
                 section.completed = completedSections.includes(section.id);
               });
+            });
+          } else {
+            // Initialize progress document if it doesn't exist
+            await setDoc(progressRef, {
+              courseId,
+              overallProgress: 0,
+              completedSections: [],
+              currentModule: modules[0]?.id || "",
+              currentSection: modules[0]?.sections[0]?.id || "",
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
             });
           }
 

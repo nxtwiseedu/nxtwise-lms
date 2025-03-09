@@ -2,13 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams } from "next/navigation";
 import { useCourses, Course, Section } from "../course-context";
 import { auth } from "../../lib/firebase";
-import {
-  getFirestore,
-  doc,
-  getDoc,
-  setDoc,
-  updateDoc,
-} from "firebase/firestore";
+import { getFirestore, doc, getDoc, setDoc } from "firebase/firestore";
 
 interface CourseLogicReturn {
   course: Course | null;
@@ -114,16 +108,48 @@ export function useCourseLogic(): CourseLogicReturn {
       completed: boolean,
       newProgress: number
     ) => {
-      if (!auth.currentUser || isUpdatingProgress.current) return;
+      if (!auth.currentUser) return;
 
       try {
+        // Lock updates while this one is processing
+        if (isUpdatingProgress.current) {
+          console.log("Progress update already in progress, queuing...");
+          // Wait until the current update is complete before proceeding
+          await new Promise((resolve) => {
+            const checkInterval = setInterval(() => {
+              if (!isUpdatingProgress.current) {
+                clearInterval(checkInterval);
+                resolve(true);
+              }
+            }, 100);
+          });
+        }
+
         isUpdatingProgress.current = true;
         const userId = auth.currentUser.uid;
         const db = getFirestore();
         const progressRef = doc(db, "users", userId, "progress", courseId);
 
-        let updatedCompletedSections = [...completedSectionsRef.current];
+        // Get a snapshot to ensure we have the latest data
+        const progressSnapshot = await getDoc(progressRef);
 
+        // Combine current state with database state to ensure we don't lose updates
+        let currentCompletedSections: string[] = [];
+
+        if (progressSnapshot.exists()) {
+          const data = progressSnapshot.data();
+          currentCompletedSections = data.completedSections || [];
+        }
+
+        // Merge with our local ref for safety
+        let updatedCompletedSections = Array.from(
+          new Set([
+            ...currentCompletedSections,
+            ...completedSectionsRef.current,
+          ])
+        );
+
+        // Update based on current action
         if (completed && !updatedCompletedSections.includes(sectionId)) {
           updatedCompletedSections.push(sectionId);
         } else if (!completed && updatedCompletedSections.includes(sectionId)) {
@@ -132,17 +158,29 @@ export function useCourseLogic(): CourseLogicReturn {
           );
         }
 
-        await updateDoc(progressRef, {
-          overallProgress: newProgress,
-          completedSections: updatedCompletedSections,
-          currentModule: moduleId,
-          currentSection: sectionId,
-          updatedAt: new Date().toISOString(),
-        });
+        // Use setDoc with merge option to handle both creation and updates
+        await setDoc(
+          progressRef,
+          {
+            courseId,
+            overallProgress: newProgress,
+            completedSections: updatedCompletedSections,
+            currentModule: moduleId,
+            currentSection: sectionId,
+            updatedAt: new Date().toISOString(),
+          },
+          { merge: true }
+        );
 
+        // Update the ref after successful Firestore update
         completedSectionsRef.current = updatedCompletedSections;
+        console.log("Progress successfully updated in Firestore", {
+          completedSections: updatedCompletedSections,
+          progress: newProgress,
+        });
       } catch (error) {
         console.error("Error updating progress in Firestore:", error);
+        // Here you could implement retry logic or show an error to the user
       } finally {
         isUpdatingProgress.current = false;
       }
@@ -193,6 +231,7 @@ export function useCourseLogic(): CourseLogicReturn {
               initialSection = progressData.currentSection || initialSection;
               initialCompletedSections = progressData.completedSections || [];
 
+              // Make sure to update all section completion statuses
               processedCourse.modules.forEach((module) => {
                 module.sections.forEach((section) => {
                   section.completed = initialCompletedSections.includes(
@@ -204,9 +243,11 @@ export function useCourseLogic(): CourseLogicReturn {
               const progress =
                 progressData.overallProgress ||
                 calculateProgress(processedCourse);
+
               setOverallProgress(progress);
               courseProgressRef.current = progress;
             } else {
+              // Create the initial progress document if it doesn't exist
               await setDoc(progressRef, {
                 courseId,
                 overallProgress: 0,
@@ -288,7 +329,7 @@ export function useCourseLogic(): CourseLogicReturn {
         if (!isUpdatingProgress.current) {
           updateCourseData(courseId, { progress: overallProgress });
         }
-      }, 0);
+      }, 100); // Increased timeout for better stability
 
       return () => clearTimeout(timeoutId);
     }
@@ -321,6 +362,7 @@ export function useCourseLogic(): CourseLogicReturn {
 
       // Check if section is accessible
       if (!isSectionAccessible(course, moduleId, sectionId)) {
+        console.log("Section not accessible", { moduleId, sectionId });
         // If the section being requested isn't accessible, we don't change
         return;
       }
@@ -340,16 +382,21 @@ export function useCourseLogic(): CourseLogicReturn {
         };
       });
 
-      if (auth.currentUser && !isUpdatingProgress.current) {
-        // Use a timeout to ensure state updates settle first
-        setTimeout(() => {
-          updateProgressInFirestore(
-            moduleId,
-            sectionId,
-            false,
-            overallProgress
-          );
-        }, 0);
+      if (auth.currentUser) {
+        // Wrapped in a try-catch for safety
+        try {
+          // Use async/await instead of setTimeout for better reliability
+          (async () => {
+            await updateProgressInFirestore(
+              moduleId,
+              sectionId,
+              false,
+              overallProgress
+            );
+          })();
+        } catch (error) {
+          console.error("Error in changeSection:", error);
+        }
       }
     },
     [course, overallProgress, updateProgressInFirestore, isSectionAccessible]
@@ -357,41 +404,57 @@ export function useCourseLogic(): CourseLogicReturn {
 
   // Mark a section as complete
   const markAsComplete = useCallback(
-    (moduleId: string, sectionId: string) => {
+    async (moduleId: string, sectionId: string) => {
       if (!course) return;
 
-      // Create an updated course object
-      const updatedCourse = {
-        ...course,
-        modules: course.modules.map((module) => {
-          if (module.id === moduleId) {
-            return {
-              ...module,
-              sections: module.sections.map((section) => {
-                if (section.id === sectionId) {
-                  return { ...section, completed: true };
-                }
-                return section;
-              }),
-            };
-          }
-          return module;
-        }),
-      };
+      try {
+        // Create an updated course object with the completed section
+        const updatedCourse = {
+          ...course,
+          modules: course.modules.map((module) => {
+            if (module.id === moduleId) {
+              return {
+                ...module,
+                sections: module.sections.map((section) => {
+                  if (section.id === sectionId) {
+                    return { ...section, completed: true };
+                  }
+                  return section;
+                }),
+              };
+            }
+            return module;
+          }),
+        };
 
-      // Calculate new progress before updating state
-      const newProgress = calculateProgress(updatedCourse);
+        // Calculate new progress before updating state
+        const newProgress = calculateProgress(updatedCourse);
 
-      // Batch updates to reduce render cycles
-      setCourse(updatedCourse);
-      setOverallProgress(newProgress);
-      courseProgressRef.current = newProgress;
+        // Update local state immediately for responsive UI
+        setCourse(updatedCourse);
+        setOverallProgress(newProgress);
+        courseProgressRef.current = newProgress;
 
-      if (auth.currentUser && !isUpdatingProgress.current) {
-        // Use a timeout to ensure state updates settle first
-        setTimeout(() => {
-          updateProgressInFirestore(moduleId, sectionId, true, newProgress);
-        }, 0);
+        // Update local reference before Firebase call
+        if (!completedSectionsRef.current.includes(sectionId)) {
+          completedSectionsRef.current = [
+            ...completedSectionsRef.current,
+            sectionId,
+          ];
+        }
+
+        // Now update Firestore (without setTimeout for better reliability)
+        if (auth.currentUser) {
+          await updateProgressInFirestore(
+            moduleId,
+            sectionId,
+            true,
+            newProgress
+          );
+        }
+      } catch (error) {
+        console.error("Error in markAsComplete:", error);
+        // Here you could implement recovery logic or show an error to the user
       }
     },
     [course, calculateProgress, updateProgressInFirestore]

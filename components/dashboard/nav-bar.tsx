@@ -11,11 +11,12 @@ import {
   Briefcase,
   Clipboard,
   LogOut,
+  LogIn,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { auth } from "../../app/lib/firebase"; // Import Firebase auth
 import { signOut } from "firebase/auth"; // Import signOut method
@@ -65,9 +66,13 @@ const NavBar = ({ children }: NavBarProps) => {
     }
   };
 
+  const handleLogin = () => {
+    router.push("/login");
+  };
+
   return (
     <>
-      {/* Mobile Header (new) */}
+      {/* Mobile Header (updated) */}
       <header className="fixed top-0 left-0 right-0 h-16 bg-white border-b border-gray-100 shadow-sm md:hidden z-20">
         <div className="flex items-center justify-between h-full px-4">
           <div className="flex items-center">
@@ -79,12 +84,25 @@ const NavBar = ({ children }: NavBarProps) => {
               className="h-8 w-auto"
             />
           </div>
-          <Avatar className="h-9 w-9 border-2 border-[#004aad]/20">
-            <AvatarImage src="https://i.pravatar.cc/300" alt="User" />
-            <AvatarFallback className="bg-[#004aad]/10 text-[#004aad]">
-              US
-            </AvatarFallback>
-          </Avatar>
+          {user ? (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 text-gray-500"
+              onClick={handleLogout}
+            >
+              <LogOut size={18} />
+            </Button>
+          ) : (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 text-gray-500"
+              onClick={handleLogin}
+            >
+              <LogIn size={18} />
+            </Button>
+          )}
         </div>
       </header>
 
@@ -131,7 +149,7 @@ const NavBar = ({ children }: NavBarProps) => {
 
           {/* Scrollable Sidebar Content */}
           <ScrollArea className="flex-1 py-6">
-            <div className="px-3 space-y-6">
+            <div className="px-3">
               {/* Main Navigation Section */}
               <div>
                 <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider px-3 mb-3">
@@ -150,64 +168,48 @@ const NavBar = ({ children }: NavBarProps) => {
                   ))}
                 </nav>
               </div>
-
-              {/* Learning Progress Section (example) */}
-              <div>
-                <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider px-3 mb-3">
-                  Your Progress
-                </h3>
-                <div className="bg-gradient-to-br from-[#004aad]/10 to-[#0063e6]/5 rounded-xl p-4 mx-3">
-                  <h4 className="font-medium text-gray-800 mb-2">
-                    React Fundamentals
-                  </h4>
-                  <div className="w-full bg-white/70 rounded-full h-2 mb-2">
-                    <div
-                      className="bg-[#004aad] h-2 rounded-full"
-                      style={{ width: "65%" }}
-                    ></div>
-                  </div>
-                  <div className="flex justify-between text-xs text-gray-600">
-                    <span>65% Complete</span>
-                    <span>6/11 Modules</span>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="mt-3 w-full bg-white/80 hover:bg-white border-gray-200 text-[#004aad]"
-                  >
-                    Resume Course
-                  </Button>
-                </div>
-              </div>
             </div>
           </ScrollArea>
 
-          {/* User Profile Section at Bottom */}
+          {/* User Profile Section at Bottom - Updated */}
           <div className="border-t border-gray-100 p-4">
-            <div className="flex items-center">
-              <Avatar className="h-10 w-10 border-2 border-[#004aad]/10">
-                <AvatarImage src="https://i.pravatar.cc/300" alt="User" />
-                <AvatarFallback className="bg-[#004aad]/10 text-[#004aad]">
-                  US
-                </AvatarFallback>
-              </Avatar>
-              <div className="ml-3">
-                <p className="text-sm font-medium text-gray-900">
-                  {user ? user.displayName || "User" : "User"}
-                </p>
-                <p className="text-xs text-gray-500">
-                  {user ? user.email || "user@example.com" : "user@example.com"}
-                </p>
+            {user ? (
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <Avatar className="h-10 w-10 bg-[#004aad]/10">
+                    <AvatarFallback className="bg-[#004aad]/10 text-[#004aad]">
+                      {user.email ? user.email.charAt(0).toUpperCase() : "U"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="ml-3">
+                    <p className="text-xs text-gray-500">
+                      {user.email || "user@example.com"}
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="ml-auto"
+                  onClick={handleLogout}
+                >
+                  <LogOut size={16} className="text-gray-400" />
+                </Button>
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="ml-auto"
-                onClick={handleLogout}
-              >
-                <LogOut size={16} className="text-gray-400" />
-              </Button>
-            </div>
+            ) : (
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-gray-500">Not logged in</p>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="ml-auto flex items-center"
+                  onClick={handleLogin}
+                >
+                  <LogIn size={16} className="mr-2 text-gray-400" />
+                  Login
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </motion.div>
