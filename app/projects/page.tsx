@@ -1,7 +1,5 @@
+import ComingSoon from "@/components/utils/ComingSoon";
+
 export default function ProjectsPage() {
-  return (
-    <div>
-      <h1>Projects</h1>
-    </div>
-  );
+  return <ComingSoon />;
 }

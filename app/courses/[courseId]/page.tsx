@@ -13,7 +13,6 @@ import {
   Menu,
   X,
   Lock,
-  ExternalLink,
 } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -26,6 +25,7 @@ import { cn } from "@/lib/utils";
 import { useCourseLogic } from "./CourseLogic";
 import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
 import { Module } from "../course-context";
+import VideoPlayer from "./VideoPlayer"; // Import the VideoPlayer component
 
 export default function CourseView() {
   const {
@@ -43,6 +43,7 @@ export default function CourseView() {
   } = useCourseLogic();
 
   const [showMobileNav, setShowMobileNav] = useState(false);
+  const [videoPlayerOpen, setVideoPlayerOpen] = useState(false); // New state for video player
 
   // Function to check if a section is accessible
   const isSectionAccessible = (
@@ -286,38 +287,24 @@ export default function CourseView() {
   // Next button should be disabled if current section is not completed
   const nextButtonDisabled = !currentSectionData?.completed || !hasNextSection;
 
-  // Watch video function
-  const watchVideo = async () => {
+  // Watch video function - Updated to open the in-page player
+  const watchVideo = () => {
     if (currentSectionData?.videoId) {
-      try {
-        // Call the API endpoint to get the secure URL
-        const response = await fetch("/api/generate-video-token", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            videoId: currentSectionData.videoId,
-          }),
-        });
-
-        if (!response.ok) {
-          throw new Error("Failed to generate secure video URL");
-        }
-
-        const { url } = await response.json();
-
-        // Open in a new window/tab
-        window.open(url, "_blank");
-      } catch (error) {
-        console.error("Error generating secure video URL:", error);
-        // Handle error, maybe show a notification to the user
-      }
+      setVideoPlayerOpen(true);
     }
   };
 
   return (
     <div className="flex flex-col lg:flex-row h-screen bg-slate-50 overflow-hidden">
+      {/* Video Player */}
+      {currentSectionData?.videoId && (
+        <VideoPlayer
+          videoId={currentSectionData.videoId}
+          isOpen={videoPlayerOpen}
+          onClose={() => setVideoPlayerOpen(false)}
+        />
+      )}
+
       {/* Course Sidebar - Hidden on Mobile, Visible on Desktop */}
       <div className="hidden lg:block w-72 border-r border-slate-200 h-full bg-white overflow-hidden">
         <SidebarContent />
@@ -397,7 +384,6 @@ export default function CourseView() {
                 >
                   <Play size={14} className="mr-1.5" />
                   Watch Video
-                  <ExternalLink size={12} className="ml-1.5" />
                 </Button>
               )}
             </div>

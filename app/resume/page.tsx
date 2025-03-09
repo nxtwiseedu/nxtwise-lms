@@ -1,7 +1,5 @@
+import ComingSoon from "@/components/utils/ComingSoon";
+
 export default function ResumePage() {
-  return (
-    <div>
-      <h1>Resume</h1>
-    </div>
-  );
+  return <ComingSoon />;
 }

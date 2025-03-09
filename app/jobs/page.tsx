@@ -1,7 +1,5 @@
+import ComingSoon from "@/components/utils/ComingSoon";
+
 export default function JobsPage() {
-  return (
-    <div>
-      <h1>jobs</h1>
-    </div>
-  );
+  return <ComingSoon />;
 }
