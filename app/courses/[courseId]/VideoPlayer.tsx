@@ -55,9 +55,12 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-5xl max-h-[90vh] p-0 bg-black overflow-hidden w-[95vw]">
+      <DialogContent
+        className="sm:max-w-5xl p-0 bg-black overflow-hidden w-[95vw] max-h-[90vh] flex flex-col justify-center"
+        style={{ height: "auto" }}
+      >
         <DialogTitle className="sr-only">Course Video</DialogTitle>
-        <div className="relative w-full h-full">
+        <div className="relative w-full">
           {/* Close button */}
           <Button
             variant="ghost"
@@ -70,14 +73,14 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
           {/* Loading state */}
           {loading && (
-            <div className="flex items-center justify-center h-72 sm:h-[60vh] w-full">
-              <div className="w-16 h-16 border-4 border-t-indigo-600 border-r-indigo-300 border-b-transparent border-l-transparent rounded-full animate-spin"></div>
+            <div className="flex items-center justify-center h-48 md:h-64 lg:h-[60vh] w-full">
+              <div className="w-12 h-12 md:w-16 md:h-16 border-4 border-t-[#004aad] border-r-[#6694cc] border-b-transparent border-l-transparent rounded-full animate-spin"></div>
             </div>
           )}
 
           {/* Error state */}
           {error && !loading && (
-            <div className="flex items-center justify-center h-72 sm:h-[60vh] w-full bg-slate-900 text-white p-4 text-center">
+            <div className="flex items-center justify-center h-48 md:h-64 lg:h-[60vh] w-full bg-slate-900 text-white p-4 text-center">
               <div>
                 <p className="mb-4">{error}</p>
                 <Button
@@ -93,14 +96,16 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
           {/* Video */}
           {videoUrl && !loading && !error && (
-            <div className="aspect-video w-full h-full">
-              <iframe
-                src={videoUrl}
-                className="w-full h-full min-h-[60vh]"
-                allowFullScreen
-                allow="autoplay; encrypted-media; picture-in-picture"
-                title="Course video"
-              ></iframe>
+            <div className="w-full">
+              <div className="relative pb-[56.25%]">
+                <iframe
+                  src={videoUrl}
+                  className="absolute top-0 left-0 w-full h-full"
+                  allowFullScreen
+                  allow="autoplay; encrypted-media; picture-in-picture"
+                  title="Course video"
+                ></iframe>
+              </div>
             </div>
           )}
         </div>

@@ -78,7 +78,10 @@ export default function CourseView() {
     return (
       <div className="flex items-center justify-center h-screen bg-slate-50">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-t-indigo-600 border-r-indigo-300 border-b-transparent border-l-transparent rounded-full animate-spin mx-auto"></div>
+          <div
+            className="w-16 h-16 border-4 border-t-indigo-600 border-r-indigo-300 border-b-transparent border-l-transparent rounded-full animate-spin mx-auto"
+            style={{ borderTopColor: "#004aad" }}
+          ></div>
           <p className="mt-4 text-slate-700 font-medium">
             Loading your course...
           </p>
@@ -93,7 +96,7 @@ export default function CourseView() {
       <div className="flex items-center justify-center h-screen bg-slate-50">
         <div className="text-center bg-white p-8 rounded-xl shadow-lg max-w-md mx-4">
           <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <BookOpen size={32} className="text-indigo-600" />
+            <BookOpen size={32} style={{ color: "#004aad" }} />
           </div>
           <h2 className="text-2xl font-bold text-slate-800 mb-4">
             Course Not Found
@@ -103,7 +106,10 @@ export default function CourseView() {
             don&apos;t have access to it.
           </p>
           <Link href="/courses">
-            <Button className="bg-indigo-600 hover:bg-indigo-700 transition-all w-full">
+            <Button
+              className="hover:opacity-90 transition-all w-full"
+              style={{ backgroundColor: "#004aad" }}
+            >
               Browse Available Courses
             </Button>
           </Link>
@@ -129,6 +135,11 @@ export default function CourseView() {
               ? "bg-indigo-100 text-indigo-700"
               : "hover:bg-slate-100 text-slate-800"
           )}
+          style={
+            module.id === currentModule
+              ? { backgroundColor: "#cce0ff", color: "#004aad" }
+              : {}
+          }
         >
           <div className="flex items-center">
             <div
@@ -138,6 +149,11 @@ export default function CourseView() {
                   ? "bg-indigo-200 text-indigo-700"
                   : "bg-slate-100 text-slate-600"
               )}
+              style={
+                module.id === currentModule
+                  ? { backgroundColor: "#99c2ff", color: "#004aad" }
+                  : {}
+              }
             >
               <span className="text-sm font-semibold">{module.order + 1}</span>
             </div>
@@ -188,6 +204,11 @@ export default function CourseView() {
                           ? "text-emerald-600 hover:bg-emerald-50"
                           : "text-slate-700 hover:bg-slate-50"
                       )}
+                      style={
+                        accessible && currentSection === section.id
+                          ? { backgroundColor: "#e6f0ff", color: "#004aad" }
+                          : {}
+                      }
                     >
                       <div className="mr-2 flex-shrink-0">
                         {!accessible ? (
@@ -199,10 +220,14 @@ export default function CourseView() {
                             <Check size={12} className="text-emerald-600" />
                           </div>
                         ) : currentSection === section.id ? (
-                          <div className="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center">
+                          <div
+                            className="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center"
+                            style={{ backgroundColor: "#cce0ff" }}
+                          >
                             <Play
                               size={12}
-                              className="text-indigo-700 ml-0.5"
+                              style={{ color: "#004aad" }}
+                              className="ml-0.5"
                             />
                           </div>
                         ) : (
@@ -238,7 +263,7 @@ export default function CourseView() {
       <div className="p-4 border-b border-slate-100">
         <Link
           href="/courses"
-          className="flex items-center text-xs text-slate-600 mb-3 hover:text-indigo-600 transition-colors"
+          className="flex items-center text-xs text-slate-600 mb-3 hover:text-indigo-600 transition-colors hover:text-[#004aad]"
         >
           <ChevronLeft size={14} className="mr-1" />
           Back to All Courses
@@ -249,7 +274,10 @@ export default function CourseView() {
         <div className="mt-2">
           <div className="flex justify-between text-xs font-medium mb-1.5">
             <span className="text-slate-700">Your Progress</span>
-            <span className="text-indigo-600 font-semibold">
+            <span
+              className="text-indigo-600 font-semibold"
+              style={{ color: "#004aad" }}
+            >
               {Math.round(overallProgress)}%
             </span>
           </div>
@@ -295,7 +323,7 @@ export default function CourseView() {
   };
 
   return (
-    <div className="flex flex-col lg:flex-row h-screen bg-slate-50 overflow-hidden">
+    <div className="flex flex-col lg:flex-row w-screen  lg:w-auto h-screen bg-slate-50 overflow-hidden">
       {/* Video Player */}
       {currentSectionData?.videoId && (
         <VideoPlayer
@@ -455,7 +483,8 @@ export default function CourseView() {
                         onClick={() =>
                           markAsComplete(currentModule!, currentSection!)
                         }
-                        className="bg-indigo-600 hover:bg-indigo-700 transition-all"
+                        className="hover:opacity-90 transition-all"
+                        style={{ backgroundColor: "#004aad" }}
                       >
                         <Check size={14} className="sm:mr-1.5" />
                         <span className="hidden sm:inline text-sm">
@@ -490,9 +519,14 @@ export default function CourseView() {
                     className={cn(
                       "hidden sm:flex items-center",
                       currentSectionData.completed && hasNextSection
-                        ? "bg-indigo-600 hover:bg-indigo-700 text-white"
+                        ? "text-white"
                         : "border-slate-200 hover:bg-slate-50 text-slate-400"
                     )}
+                    style={
+                      currentSectionData.completed && hasNextSection
+                        ? { backgroundColor: "#004aad" }
+                        : {}
+                    }
                   >
                     Next
                     <ChevronRight size={14} className="ml-1.5" />
@@ -511,9 +545,14 @@ export default function CourseView() {
                     className={cn(
                       "sm:hidden w-9 h-9 p-0 flex items-center justify-center rounded-lg",
                       currentSectionData.completed && hasNextSection
-                        ? "bg-indigo-600 hover:bg-indigo-700 text-white"
+                        ? "text-white"
                         : "border-slate-200 hover:bg-slate-50 hover:text-slate-800"
                     )}
+                    style={
+                      currentSectionData.completed && hasNextSection
+                        ? { backgroundColor: "#004aad" }
+                        : {}
+                    }
                   >
                     <ChevronRight size={16} />
                   </Button>
@@ -524,8 +563,11 @@ export default function CourseView() {
         ) : (
           <div className="flex items-center justify-center h-full bg-white p-4">
             <div className="text-center max-w-md">
-              <div className="w-16 h-16 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                <BookOpen size={24} className="text-indigo-600" />
+              <div
+                className="w-16 h-16 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-4"
+                style={{ backgroundColor: "#e6f0ff" }}
+              >
+                <BookOpen size={24} style={{ color: "#004aad" }} />
               </div>
               <h2 className="text-xl font-bold text-slate-800 mb-2">
                 Ready to start learning?
@@ -535,7 +577,8 @@ export default function CourseView() {
                 learning journey.
               </p>
               <Button
-                className="bg-indigo-600 hover:bg-indigo-700"
+                className="hover:opacity-90"
+                style={{ backgroundColor: "#004aad" }}
                 onClick={() => {
                   if (
                     course.modules.length > 0 &&
