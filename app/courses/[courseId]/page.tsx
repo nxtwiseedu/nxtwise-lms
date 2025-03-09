@@ -287,12 +287,32 @@ export default function CourseView() {
   const nextButtonDisabled = !currentSectionData?.completed || !hasNextSection;
 
   // Watch video function
-  const watchVideo = () => {
+  const watchVideo = async () => {
     if (currentSectionData?.videoId) {
-      window.open(
-        `https://player.vimeo.com/video/${currentSectionData.videoId}`,
-        "_blank"
-      );
+      try {
+        // Call the API endpoint to get the secure URL
+        const response = await fetch("/api/generate-video-token", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            videoId: currentSectionData.videoId,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to generate secure video URL");
+        }
+
+        const { url } = await response.json();
+
+        // Open in a new window/tab
+        window.open(url, "_blank");
+      } catch (error) {
+        console.error("Error generating secure video URL:", error);
+        // Handle error, maybe show a notification to the user
+      }
     }
   };
 
