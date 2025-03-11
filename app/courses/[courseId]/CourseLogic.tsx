@@ -4,6 +4,43 @@ import { useCourses, Course, Section } from "../course-context";
 import { auth } from "../../lib/firebase";
 import { getFirestore, doc, getDoc, setDoc } from "firebase/firestore";
 
+// This function helps format the video duration for display
+export const formatDuration = (seconds: number | undefined): string => {
+  if (!seconds) return "0 min";
+
+  const minutes = Math.ceil(seconds / 60);
+  return `${minutes} min`;
+};
+
+// This function gets the total duration of a section by summing all video durations
+export const getSectionDuration = (section: Section): number => {
+  // If we have videos array with durations, sum them
+  if (section.videos && section.videos.length > 0) {
+    return section.videos.reduce(
+      (total, video) => total + (video.duration || 0),
+      0
+    );
+  }
+
+  // If we have a single duration property (legacy)
+  if (section.duration) {
+    return section.duration;
+  }
+
+  return 0;
+};
+
+// Return a video ID for a section (first video, or legacy videoId)
+export const getPrimaryVideoId = (section: Section): string | undefined => {
+  // First try videos array
+  if (section.videos && section.videos.length > 0 && section.videos[0].id) {
+    return section.videos[0].id;
+  }
+
+  // Fall back to legacy videoId
+  return section.videoId;
+};
+
 interface CourseLogicReturn {
   course: Course | null;
   loading: boolean;
@@ -16,6 +53,9 @@ interface CourseLogicReturn {
   markAsComplete: (moduleId: string, sectionId: string) => void;
   goToNextSection: () => void;
   goToPrevSection: () => void;
+  getSectionDuration: (section: Section) => number;
+  formatDuration: (seconds: number | undefined) => string;
+  getCurrentVideoId: () => string | undefined;
 }
 
 export function useCourseLogic(): CourseLogicReturn {
@@ -59,6 +99,14 @@ export function useCourseLogic(): CourseLogicReturn {
 
     return totalSections > 0 ? (completedSections / totalSections) * 100 : 0;
   }, []);
+
+  // Get current video ID (primary video of current section)
+  const getCurrentVideoId = useCallback((): string | undefined => {
+    if (!currentSectionData) return undefined;
+    return getPrimaryVideoId(currentSectionData);
+  }, [currentSectionData]);
+
+  // Other methods remain the same...
 
   // Determine if section is accessible based on completion status
   const isSectionAccessible = useCallback(
@@ -201,6 +249,7 @@ export function useCourseLogic(): CourseLogicReturn {
           return;
         }
 
+        // Process course data, ensuring backward compatibility with videos array
         const processedCourse: Course = {
           ...courseData,
           modules: courseData.modules.map((module) => ({
@@ -208,6 +257,12 @@ export function useCourseLogic(): CourseLogicReturn {
             expanded: module.order === 0,
             sections: module.sections.map((section) => ({
               ...section,
+              // Ensure the videos array exists (for backward compatibility)
+              videos:
+                section.videos ||
+                (section.videoId
+                  ? [{ id: section.videoId, duration: section.duration || 0 }]
+                  : []),
             })),
           })),
         };
@@ -286,6 +341,7 @@ export function useCourseLogic(): CourseLogicReturn {
     // Make sure this effect only runs when necessary
   }, [courseId, contextLoading, getCourseById, calculateProgress]);
 
+  // Rest of the code remains the same...
   // Update current section data when needed
   useEffect(() => {
     if (!course || !currentModule || !currentSection) {
@@ -547,5 +603,8 @@ export function useCourseLogic(): CourseLogicReturn {
     markAsComplete,
     goToNextSection,
     goToPrevSection,
+    getSectionDuration,
+    formatDuration,
+    getCurrentVideoId,
   };
 }

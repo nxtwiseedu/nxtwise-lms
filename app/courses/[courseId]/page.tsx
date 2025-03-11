@@ -40,8 +40,10 @@ export default function CourseView() {
     markAsComplete,
     goToNextSection,
     goToPrevSection,
+    getSectionDuration,
+    formatDuration,
   } = useCourseLogic();
-
+  const [currentVideoId, setCurrentVideoId] = useState<string>("");
   const [showMobileNav, setShowMobileNav] = useState(false);
   const [videoPlayerOpen, setVideoPlayerOpen] = useState(false); // New state for video player
 
@@ -316,8 +318,18 @@ export default function CourseView() {
   const nextButtonDisabled = !currentSectionData?.completed || !hasNextSection;
 
   // Watch video function - Updated to open the in-page player
-  const watchVideo = () => {
-    if (currentSectionData?.videoId) {
+  const watchVideo = (videoId?: string) => {
+    // If specific videoId is provided, use it; otherwise use default from section
+    const videoToPlay =
+      videoId ||
+      currentSectionData?.videoId ||
+      (currentSectionData?.videos && currentSectionData.videos.length > 0
+        ? currentSectionData.videos[0].id
+        : "");
+
+    if (videoToPlay) {
+      // Set the video ID to play
+      setCurrentVideoId(videoToPlay);
       setVideoPlayerOpen(true);
     }
   };
@@ -325,13 +337,16 @@ export default function CourseView() {
   return (
     <div className="flex flex-col lg:flex-row w-screen  lg:w-auto h-screen bg-slate-50 overflow-hidden">
       {/* Video Player */}
-      {currentSectionData?.videoId && (
-        <VideoPlayer
-          videoId={currentSectionData.videoId}
-          isOpen={videoPlayerOpen}
-          onClose={() => setVideoPlayerOpen(false)}
-        />
-      )}
+      {currentSectionData &&
+        (currentSectionData.videoId ||
+          (currentSectionData.videos &&
+            currentSectionData.videos.length > 0)) && (
+          <VideoPlayer
+            videoId={currentVideoId}
+            isOpen={videoPlayerOpen}
+            onClose={() => setVideoPlayerOpen(false)}
+          />
+        )}
 
       {/* Course Sidebar - Hidden on Mobile, Visible on Desktop */}
       <div className="hidden lg:block w-72 border-r border-slate-200 h-full bg-white overflow-hidden">
@@ -403,7 +418,10 @@ export default function CourseView() {
                 </p>
               </div>
 
-              {currentSectionData.videoId && (
+              {/* 
+              {(currentSectionData?.videoId ||
+                (currentSectionData?.videos &&
+                  currentSectionData.videos.length > 0)) && (
                 <Button
                   variant="secondary"
                   size="sm"
@@ -411,9 +429,12 @@ export default function CourseView() {
                   onClick={watchVideo}
                 >
                   <Play size={14} className="mr-1.5" />
-                  Watch Video
+                  {currentSectionData.videos &&
+                  currentSectionData.videos.length > 1
+                    ? `Watch Videos (${currentSectionData.videos.length})`
+                    : "Watch Video"}
                 </Button>
-              )}
+              )} */}
             </div>
 
             {/* Section Content */}
@@ -432,9 +453,68 @@ export default function CourseView() {
                   </Badge>
                   <div className="flex items-center text-xs text-slate-500">
                     <Clock size={12} className="mr-1.5" />
-                    <span>10 min</span>
+                    <span>
+                      {currentSectionData &&
+                      getSectionDuration(currentSectionData) > 0
+                        ? formatDuration(getSectionDuration(currentSectionData))
+                        : "10 min"}
+                    </span>
                   </div>
                 </div>
+                {currentSectionData?.videos &&
+                  currentSectionData.videos.length > 0 && (
+                    <div className="mt-6 mb-6">
+                      <h4 className="text-sm font-medium text-slate-700 mb-3">
+                        Section Videos
+                      </h4>
+                      <div className="space-y-2 bg-slate-50 rounded-lg border border-slate-100 p-3">
+                        {currentSectionData.videos.map((video, index) => (
+                          <div
+                            key={video.id}
+                            className="flex items-center justify-between bg-white p-3 rounded border border-slate-200"
+                          >
+                            <div className="flex items-center">
+                              <div
+                                className="w-8 h-8 rounded-full bg-indigo-50 flex items-center justify-center mr-3"
+                                style={{ backgroundColor: "#e6f0ff" }}
+                              >
+                                <span
+                                  className="text-xs font-medium"
+                                  style={{ color: "#004aad" }}
+                                >
+                                  {index + 1}
+                                </span>
+                              </div>
+                              <div>
+                                <h5 className="text-sm font-medium text-slate-800">
+                                  Video {index + 1}
+                                  {video.duration > 0 && (
+                                    <span className="ml-2 text-xs font-normal text-slate-500">
+                                      ({Math.ceil(video.duration / 60)} min)
+                                    </span>
+                                  )}
+                                </h5>
+                              </div>
+                            </div>
+
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => watchVideo(video.id)}
+                              className="text-xs flex items-center"
+                            >
+                              <Play
+                                size={12}
+                                className="mr-1.5"
+                                style={{ color: "#004aad" }}
+                              />
+                              Watch
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                 {currentSectionData.description && (
                   <div className="prose prose-slate mb-8 bg-slate-50 p-4 rounded-lg border border-slate-100 max-w-full text-sm">

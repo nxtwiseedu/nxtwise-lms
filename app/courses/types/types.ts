@@ -1,12 +1,20 @@
+// Video interface for multiple videos per section
+export interface Video {
+  id: string;
+  duration: number;
+}
+
 export interface Section {
   id: string;
   title: string;
   order: number;
   completed: boolean;
   description?: string;
-  videoId?: string; // Added from mock data
-  createdAt: string; // Added from mock data
-  updatedAt: string; // Added from mock data
+  videoId?: string; // Legacy field for backward compatibility
+  duration?: number; // Legacy duration field
+  videos?: Video[]; // New field for multiple videos
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Module {
@@ -15,9 +23,9 @@ export interface Module {
   order: number;
   expanded: boolean;
   sections: Section[];
-  description?: string; // Added from mock data
-  createdAt?: string; // Added from mock data
-  updatedAt?: string; // Added from mock data
+  description?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Course {

@@ -23,13 +23,20 @@ import { auth } from "../lib/firebase";
 import mockCourses from "./[courseId]/mock/data";
 
 // Types
+export interface Video {
+  id: string;
+  duration: number;
+}
+
 export interface Section {
   id: string;
   title: string;
   order: number;
   completed: boolean;
   description?: string;
-  videoId?: string;
+  videoId?: string; // Legacy field for backward compatibility
+  duration?: number; // Legacy duration field
+  videos?: Video[]; // New field for multiple videos
 }
 
 export interface Module {
@@ -68,6 +75,40 @@ interface CourseContextType {
   getCourseById: (courseId: string) => Course | null;
 }
 
+// Utility functions for handling video data
+export const formatDuration = (seconds: number | undefined): string => {
+  if (!seconds) return "0 min";
+  const minutes = Math.ceil(seconds / 60);
+  return `${minutes} min`;
+};
+
+export const getSectionDuration = (section: Section): number => {
+  // If we have videos array with durations, sum them
+  if (section.videos && section.videos.length > 0) {
+    return section.videos.reduce(
+      (total, video) => total + (video.duration || 0),
+      0
+    );
+  }
+
+  // If we have a single duration property (legacy)
+  if (section.duration) {
+    return section.duration;
+  }
+
+  return 0;
+};
+
+export const getPrimaryVideoId = (section: Section): string | undefined => {
+  // First try videos array
+  if (section.videos && section.videos.length > 0 && section.videos[0].id) {
+    return section.videos[0].id;
+  }
+
+  // Fall back to legacy videoId
+  return section.videoId;
+};
+
 // Create context with a default value
 const CourseContext = createContext<CourseContextType | undefined>(undefined);
 
@@ -95,14 +136,36 @@ export function CourseProvider({
           // Simulate API delay
           await new Promise((resolve) => setTimeout(resolve, 500));
 
-          setCourses(mockCourses);
+          // Process mock courses to ensure they have the videos array
+          const processedMockCourses = mockCourses.map((course) => ({
+            ...course,
+            modules: course.modules.map((module) => ({
+              ...module,
+              sections: module.sections.map((section) => ({
+                ...section,
+                // Ensure videos array exists for backward compatibility
+                videos:
+                  section.videos ||
+                  (section.videoId
+                    ? [
+                        {
+                          id: section.videoId,
+                          duration: section.duration || 0,
+                        },
+                      ]
+                    : []),
+              })),
+            })),
+          }));
+
+          setCourses(processedMockCourses);
           setEnrolledCourses(
-            mockCourses.filter(
+            processedMockCourses.filter(
               (course) => course.progress && course.progress > 0
             )
           );
           setAvailableCourses(
-            mockCourses.filter(
+            processedMockCourses.filter(
               (course) => !course.progress || course.progress === 0
             )
           );
@@ -183,10 +246,26 @@ export function CourseProvider({
             )
           );
 
-          const sections = sectionsSnapshot.docs.map((sectionDoc) => ({
-            ...sectionDoc.data(),
-            completed: false, // Default to false, will be updated with user progress
-          })) as Section[];
+          const sections = sectionsSnapshot.docs.map((sectionDoc) => {
+            const sectionData = sectionDoc.data();
+
+            // Ensure videos array exists for backward compatibility
+            const videos = sectionData.videos || [];
+
+            // If section has videoId but no videos, create a videos entry
+            if (sectionData.videoId && (!videos || videos.length === 0)) {
+              videos.push({
+                id: sectionData.videoId,
+                duration: sectionData.duration || 0,
+              });
+            }
+
+            return {
+              ...sectionData,
+              videos,
+              completed: false, // Default to false, will be updated with user progress
+            };
+          }) as Section[];
 
           // Sort sections by order
           sections.sort((a, b) => a.order - b.order);
@@ -410,10 +489,26 @@ export function CourseProvider({
                 )
               );
 
-              const sections = sectionsSnapshot.docs.map((sectionDoc) => ({
-                ...sectionDoc.data(),
-                completed: false, // Default value
-              })) as Section[];
+              const sections = sectionsSnapshot.docs.map((sectionDoc) => {
+                const sectionData = sectionDoc.data();
+
+                // Ensure videos array exists for backward compatibility
+                const videos = sectionData.videos || [];
+
+                // If section has videoId but no videos, create a videos entry
+                if (sectionData.videoId && (!videos || videos.length === 0)) {
+                  videos.push({
+                    id: sectionData.videoId,
+                    duration: sectionData.duration || 0,
+                  });
+                }
+
+                return {
+                  ...sectionData,
+                  videos,
+                  completed: false, // Default value
+                };
+              }) as Section[];
 
               // Sort sections by order
               sections.sort((a, b) => a.order - b.order);
