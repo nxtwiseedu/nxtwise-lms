@@ -470,50 +470,64 @@ export default function CourseView() {
                       <h4 className="text-sm font-medium text-slate-700 mb-3">
                         Section Videos
                       </h4>
-                      <div className="space-y-2 bg-slate-50 rounded-lg border border-slate-100 p-3">
-                        {currentSectionData.videos.map((video, index) => (
-                          <div
-                            key={video.id}
-                            className="flex items-center justify-between bg-white p-3 rounded border border-slate-200"
-                          >
-                            <div className="flex items-center">
-                              <div
-                                className="w-8 h-8 rounded-full bg-indigo-50 flex items-center justify-center mr-3"
-                                style={{ backgroundColor: "#e6f0ff" }}
-                              >
-                                <span
-                                  className="text-xs font-medium"
-                                  style={{ color: "#004aad" }}
-                                >
-                                  {index + 1}
-                                </span>
-                              </div>
-                              <div>
-                                <h5 className="text-sm font-medium text-slate-800">
-                                  {video.name
-                                    ? // Display video name if available
-                                      video.name
-                                    : // Fallback to generic name if no name provided
-                                      `Video ${index + 1}`}
-                                </h5>
-                              </div>
-                            </div>
-
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => watchVideo(video.id)}
-                              className="text-xs flex items-center"
+                      {/* Fixed outer container with unchanged styling */}
+                      <div className="bg-slate-50 rounded-lg border border-slate-100 p-3">
+                        {/* Force scrolling with fixed height */}
+                        <div
+                          style={{
+                            height:
+                              currentSectionData.videos.length > 5
+                                ? "350px"
+                                : "auto",
+                            overflowY:
+                              currentSectionData.videos.length > 5
+                                ? "scroll"
+                                : "visible",
+                          }}
+                          className="space-y-2"
+                        >
+                          {currentSectionData.videos.map((video, index) => (
+                            <div
+                              key={video.id || index}
+                              className="flex items-center justify-between bg-white p-3 rounded border border-slate-200"
                             >
-                              <Play
-                                size={12}
-                                className="mr-1.5"
-                                style={{ color: "#004aad" }}
-                              />
-                              Watch
-                            </Button>
-                          </div>
-                        ))}
+                              <div className="flex items-center">
+                                <div
+                                  className="w-8 h-8 rounded-full bg-indigo-50 flex items-center justify-center mr-3"
+                                  style={{ backgroundColor: "#e6f0ff" }}
+                                >
+                                  <span
+                                    className="text-xs font-medium"
+                                    style={{ color: "#004aad" }}
+                                  >
+                                    {index + 1}
+                                  </span>
+                                </div>
+                                <div>
+                                  <h5 className="text-sm font-medium text-slate-800">
+                                    {video.name
+                                      ? video.name
+                                      : `Video ${index + 1}`}
+                                  </h5>
+                                </div>
+                              </div>
+
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => watchVideo(video.id)}
+                                className="text-xs flex items-center"
+                              >
+                                <Play
+                                  size={12}
+                                  className="mr-1.5"
+                                  style={{ color: "#004aad" }}
+                                />
+                                Watch
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     </div>
                   )}
