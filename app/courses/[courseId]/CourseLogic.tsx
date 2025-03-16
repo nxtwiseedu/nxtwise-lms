@@ -261,7 +261,13 @@ export function useCourseLogic(): CourseLogicReturn {
               videos:
                 section.videos ||
                 (section.videoId
-                  ? [{ id: section.videoId, duration: section.duration || 0 }]
+                  ? [
+                      {
+                        id: section.videoId,
+                        name: "",
+                        duration: section.duration || 0,
+                      },
+                    ]
                   : []),
             })),
           })),

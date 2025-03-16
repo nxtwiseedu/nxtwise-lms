@@ -487,12 +487,11 @@ export default function CourseView() {
                               </div>
                               <div>
                                 <h5 className="text-sm font-medium text-slate-800">
-                                  Video {index + 1}
-                                  {video.duration > 0 && (
-                                    <span className="ml-2 text-xs font-normal text-slate-500">
-                                      ({Math.ceil(video.duration / 60)} min)
-                                    </span>
-                                  )}
+                                  {video.name
+                                    ? // Display video name if available
+                                      video.name
+                                    : // Fallback to generic name if no name provided
+                                      `Video ${index + 1}`}
                                 </h5>
                               </div>
                             </div>

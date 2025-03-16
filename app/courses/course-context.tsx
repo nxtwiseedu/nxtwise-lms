@@ -26,6 +26,7 @@ import mockCourses from "./[courseId]/mock/data";
 export interface Video {
   id: string;
   duration: number;
+  name?: string; // Make it optional for backward compatibility
 }
 
 export interface Section {
@@ -150,6 +151,7 @@ export function CourseProvider({
                     ? [
                         {
                           id: section.videoId,
+                          name: "",
                           duration: section.duration || 0,
                         },
                       ]
@@ -256,6 +258,7 @@ export function CourseProvider({
             if (sectionData.videoId && (!videos || videos.length === 0)) {
               videos.push({
                 id: sectionData.videoId,
+                name: "",
                 duration: sectionData.duration || 0,
               });
             }
@@ -499,6 +502,7 @@ export function CourseProvider({
                 if (sectionData.videoId && (!videos || videos.length === 0)) {
                   videos.push({
                     id: sectionData.videoId,
+                    name: "", // Add empty name for backward compatibility
                     duration: sectionData.duration || 0,
                   });
                 }
