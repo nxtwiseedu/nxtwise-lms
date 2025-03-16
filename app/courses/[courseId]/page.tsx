@@ -179,7 +179,10 @@ export default function CourseView() {
               transition={{ duration: 0.2 }}
               className="overflow-hidden"
             >
-              <div className="pl-8 pr-2 pt-1 pb-1 space-y-1">
+              <div
+                className="pl-8 pr-2 pt-1 pb-1 space-y-1"
+                key={`sections-${module.id}`}
+              >
                 {module.sections.map((section, sectionIndex) => {
                   const accessible = isSectionAccessible(
                     moduleIndex,
@@ -287,7 +290,7 @@ export default function CourseView() {
         </div>
       </div>
 
-      <ScrollArea className="flex-grow py-2 px-3">
+      <ScrollArea className="flex-grow py-2 px-3" key="course-modules-scroll">
         {course.modules.map((module, moduleIndex) => (
           <ModuleSection
             key={module.id}
