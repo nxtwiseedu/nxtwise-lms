@@ -474,17 +474,9 @@ export default function CourseView() {
                       <div className="bg-slate-50 rounded-lg border border-slate-100 p-3">
                         {/* Force scrolling with fixed height */}
                         <div
-                          style={{
-                            height:
-                              currentSectionData.videos.length > 5
-                                ? "350px"
-                                : "auto",
-                            overflowY:
-                              currentSectionData.videos.length > 5
-                                ? "scroll"
-                                : "visible",
-                          }}
-                          className="space-y-2"
+                          className={`max-h-48 overflow-y-auto space-y-2 ${
+                            currentSectionData.videos.length > 3 ? "pr-2" : ""
+                          }`}
                         >
                           {currentSectionData.videos.map((video, index) => (
                             <div
