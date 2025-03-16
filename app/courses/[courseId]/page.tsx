@@ -579,13 +579,33 @@ export default function CourseView() {
                         onClick={() =>
                           markAsComplete(currentModule!, currentSection!)
                         }
-                        className="hover:opacity-90 transition-all"
-                        style={{ backgroundColor: "#004aad" }}
+                        className="hover:opacity-95 hover:shadow-md transition-all font-medium group relative overflow-hidden"
+                        style={{
+                          backgroundColor: "#004aad",
+                          boxShadow: "0 1px 2px rgba(0, 0, 0, 0.1)",
+                          position: "relative",
+                          transform: "translateY(0)",
+                        }}
+                        onMouseOver={(e) => {
+                          e.currentTarget.style.transform = "translateY(-1px)";
+                        }}
+                        onMouseOut={(e) => {
+                          e.currentTarget.style.transform = "translateY(0)";
+                        }}
                       >
-                        <Check size={14} className="sm:mr-1.5" />
-                        <span className="hidden sm:inline text-sm">
-                          Mark Complete
-                        </span>
+                        <div className="flex items-center justify-center relative z-10">
+                          <Check
+                            size={14}
+                            className="sm:mr-1.5 group-hover:scale-110 transition-transform"
+                          />
+                          <span className="hidden sm:inline text-sm">
+                            Mark Complete
+                          </span>
+                        </div>
+                        <div
+                          className="absolute inset-0 bg-blue-800 transform scale-x-0 origin-left group-hover:scale-x-100 transition-transform duration-300"
+                          style={{ zIndex: 0 }}
+                        ></div>
                       </Button>
                     ) : (
                       <Button

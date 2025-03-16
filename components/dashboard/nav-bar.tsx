@@ -140,9 +140,8 @@ const NavBar = ({ children }: NavBarProps) => {
               <Image
                 src="/EdzeetaLogo.svg"
                 alt="Edzeeta Logo"
-                width={130}
-                height={36}
-                className="h-9 w-auto"
+                width={100}
+                height={25}
               />
             </div>
           </div>
