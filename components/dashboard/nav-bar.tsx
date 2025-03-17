@@ -79,9 +79,8 @@ const NavBar = ({ children }: NavBarProps) => {
             <Image
               src="/EdzeetaLogo.svg"
               alt="Edzeeta Logo"
-              width={120}
-              height={32}
-              className="h-8 w-auto"
+              width={80} // Higher resolution for quality
+              height={40} // Maintain aspect ratio
             />
           </div>
           {user ? (
