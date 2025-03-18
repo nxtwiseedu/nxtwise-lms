@@ -417,7 +417,7 @@ export default function CourseView() {
                     course.modules.find((m) => m.id === currentModule)
                       ?.moduleName
                   }{" "}
-                  {/* • Lesson {currentSectionData.order + 1} */}
+                  • Lesson {currentSectionData.order + 1}
                 </p>
               </div>
 
