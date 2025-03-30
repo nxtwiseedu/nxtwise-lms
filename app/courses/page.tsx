@@ -31,8 +31,8 @@ export default function CoursesPage() {
 
   const filteredAvailable = availableCourses.filter(
     (course) =>
-      course.mainTitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      course.description.toLowerCase().includes(searchQuery.toLowerCase())
+      course.mainTitle?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      course.description?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   // Animation variants for cards
