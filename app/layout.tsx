@@ -5,7 +5,7 @@ import { AuthProvider } from "@/contexts/auth-context";
 import { Toaster } from "sonner";
 import { ClientLayout } from "./ClientLayout";
 import { CourseProvider } from "./courses/course-context";
-
+import { Analytics } from "@vercel/analytics/next";
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -34,7 +34,9 @@ export default function RootLayout({
       >
         <AuthProvider>
           <ClientLayout>
-            <CourseProvider>{children}</CourseProvider>
+            <CourseProvider>
+              {children} <Analytics />
+            </CourseProvider>
           </ClientLayout>
           <Toaster />
         </AuthProvider>
