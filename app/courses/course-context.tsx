@@ -19,8 +19,6 @@ import {
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "../lib/firebase";
 
-// Fallback to mock data if needed during development
-import mockCourses from "./[courseId]/mock/data";
 import { Course, Section, Module } from "./types/types";
 
 // Types
@@ -91,58 +89,6 @@ export function CourseProvider({
 
   // Fetch user data and courses from Firestore
   useEffect(() => {
-    if (useMockData) {
-      // Use mock data for development
-      const fetchMockCourses = async () => {
-        try {
-          // Simulate API delay
-          await new Promise((resolve) => setTimeout(resolve, 500));
-
-          // Process mock courses to ensure they have the videos array
-          const processedMockCourses = mockCourses.map((course) => ({
-            ...course,
-            modules: course.modules.map((module) => ({
-              ...module,
-              sections: module.sections.map((section) => ({
-                ...section,
-                // Ensure videos array exists for backward compatibility
-                videos:
-                  section.videos ||
-                  (section.videoId
-                    ? [
-                        {
-                          id: section.videoId,
-                          name: "",
-                          duration: section.duration || 0,
-                        },
-                      ]
-                    : []),
-              })),
-            })),
-          }));
-
-          setCourses(processedMockCourses);
-          setEnrolledCourses(
-            processedMockCourses.filter(
-              (course) => course.progress && course.progress > 0
-            )
-          );
-          setAvailableCourses(
-            processedMockCourses.filter(
-              (course) => !course.progress || course.progress === 0
-            )
-          );
-          setLoading(false);
-        } catch (error) {
-          console.error("Error fetching mock courses:", error);
-          setLoading(false);
-        }
-      };
-
-      fetchMockCourses();
-      return;
-    }
-
     // Listen for authentication state changes
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
