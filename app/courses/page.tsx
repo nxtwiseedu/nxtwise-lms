@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useCourses } from "./course-context";
+import Image from "next/image";
 
 export default function CoursesPage() {
   const { enrolledCourses, availableCourses, loading } = useCourses();
@@ -158,8 +159,20 @@ export default function CoursesPage() {
                     <div className="relative">
                       {/* Thumbnail and progress elements remain the same */}
                       <div className="h-36 bg-gradient-to-r from-gray-200 to-gray-100 overflow-hidden relative">
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <BookOpen size={48} className="text-gray-400" />
+                        <div className="absolute inset-0">
+                          {course.thumbnail ? (
+                            <Image
+                              src={course.thumbnail}
+                              alt={`${course.mainTitle} thumbnail`}
+                              fill
+                              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                              className="object-cover"
+                            />
+                          ) : (
+                            <div className="flex items-center justify-center h-full">
+                              <BookOpen size={48} className="text-gray-400" />
+                            </div>
+                          )}
                         </div>
 
                         {/* Progress overlay */}
@@ -296,8 +309,20 @@ export default function CoursesPage() {
             >
               <Card className="h-full overflow-hidden border-gray-200 bg-white/50 backdrop-blur-sm transition-all">
                 <div className="h-36 bg-gradient-to-r from-gray-200 to-gray-100 overflow-hidden relative">
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <BookOpen size={48} className="text-gray-400" />
+                  <div className="absolute inset-0">
+                    {course.thumbnail ? (
+                      <Image
+                        src={course.thumbnail}
+                        alt={`${course.mainTitle} thumbnail`}
+                        fill
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                        className="object-cover"
+                      />
+                    ) : (
+                      <div className="flex items-center justify-center h-full">
+                        <BookOpen size={48} className="text-gray-400" />
+                      </div>
+                    )}
                   </div>
                 </div>
 

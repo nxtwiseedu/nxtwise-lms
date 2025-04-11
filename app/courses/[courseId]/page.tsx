@@ -24,7 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useCourseLogic } from "./CourseLogic";
 import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
-import { Module } from "../course-context";
+import { Module } from "@/app/courses/types/types"; // Adjust the import path as necessary
 import VideoPlayer from "./VideoPlayer"; // Import the VideoPlayer component
 
 export default function CourseView() {

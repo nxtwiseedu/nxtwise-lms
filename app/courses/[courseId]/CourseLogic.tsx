@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams } from "next/navigation";
-import { useCourses, Course, Section } from "../course-context";
+import { useCourses } from "../course-context";
 import { auth } from "../../lib/firebase";
 import { getFirestore, doc, getDoc, setDoc } from "firebase/firestore";
+import { Section, Course } from "../types/types";
 
 // This function helps format the video duration for display
 export const formatDuration = (seconds: number | undefined): string => {

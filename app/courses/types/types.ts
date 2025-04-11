@@ -1,7 +1,7 @@
-// Video interface for multiple videos per section
 export interface Video {
   id: string;
   duration: number;
+  name?: string; // Make it optional for backward compatibility
 }
 
 export interface Section {
@@ -13,8 +13,6 @@ export interface Section {
   videoId?: string; // Legacy field for backward compatibility
   duration?: number; // Legacy duration field
   videos?: Video[]; // New field for multiple videos
-  createdAt: string;
-  updatedAt: string;
 }
 
 export interface Module {
@@ -24,8 +22,6 @@ export interface Module {
   expanded: boolean;
   sections: Section[];
   description?: string;
-  createdAt?: string;
-  updatedAt?: string;
 }
 
 export interface Course {
