@@ -165,6 +165,7 @@ export default function CoursesPage() {
                               src={course.thumbnail}
                               alt={`${course.mainTitle} thumbnail`}
                               fill
+                              quality={85}
                               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                               className="object-cover"
                             />
@@ -315,6 +316,7 @@ export default function CoursesPage() {
                         src={course.thumbnail}
                         alt={`${course.mainTitle} thumbnail`}
                         fill
+                        quality={85}
                         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                         className="object-cover"
                       />
