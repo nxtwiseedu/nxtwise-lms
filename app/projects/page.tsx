@@ -1,78 +1,37 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import {
-  ProjectWithStatus,
-  ProjectStatus,
-  ProjectCategoryWithProjects,
-} from "./types/project";
+import { ProjectCategoryWithProjects } from "./types/project";
 import ProjectCard from "@/components/projects/project-card";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Filter, SortDesc, Search, ChevronDown, ChevronUp } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Search, ChevronDown, ChevronUp } from "lucide-react";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { Button } from "@/components/ui/button";
 
-// Import mock data
-import { MOCK_CATEGORIES, MOCK_PROJECTS } from "./mock-data";
+// Import mock data (you'll need to adjust this based on your simplified types)
+import { MOCK_CATEGORIES } from "./mock-data";
 
 export default function ProjectsPage() {
   const [projectCategories, setProjectCategories] = useState<
     ProjectCategoryWithProjects[]
   >([]);
-  const [flatProjects, setFlatProjects] = useState<ProjectWithStatus[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<ProjectStatus | "all">(
-    "all"
-  );
-  const [sortOption, setSortOption] = useState<"deadline" | "title">(
-    "deadline"
-  );
-  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(
     new Set()
   );
-
-  // Track projects count by status
-  const [projectCounts, setProjectCounts] = useState({
-    all: 0,
-    notStarted: 0,
-    inProgress: 0,
-    submitted: 0,
-  });
 
   // Load mock projects on component mount
   useEffect(() => {
     // Simulate loading delay
     const loadTimer = setTimeout(() => {
       try {
-        // Load all projects from mock data
-        setFlatProjects(MOCK_PROJECTS);
         setProjectCategories(MOCK_CATEGORIES);
-
-        // Calculate counts for status tabs
-        const counts = {
-          all: MOCK_PROJECTS.length,
-          notStarted: MOCK_PROJECTS.filter((p) => p.status === "notStarted")
-            .length,
-          inProgress: MOCK_PROJECTS.filter((p) => p.status === "inProgress")
-            .length,
-          submitted: MOCK_PROJECTS.filter((p) => p.status === "submitted")
-            .length,
-        };
-        setProjectCounts(counts);
 
         // Expand all categories by default
         const newExpandedSet = new Set<string>();
@@ -90,7 +49,7 @@ export default function ProjectsPage() {
     return () => clearTimeout(loadTimer);
   }, []);
 
-  // Apply filters when status filter, sort options, or search query changes
+  // Apply search filter when search query changes
   useEffect(() => {
     if (loading) return;
 
@@ -98,62 +57,37 @@ export default function ProjectsPage() {
       // Start with original mock data
       let filteredCategories = [...MOCK_CATEGORIES];
 
-      // Apply filters to each category's projects array
-      filteredCategories = filteredCategories.map((category) => {
-        let filteredProjects = [...category.projects];
+      // Apply search filter
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase();
+        filteredCategories = filteredCategories.map((category) => {
+          let filteredProjects = [...category.projects];
 
-        // Apply status filter
-        if (statusFilter !== "all") {
-          filteredProjects = filteredProjects.filter(
-            (project) => project.status === statusFilter
-          );
-        }
-
-        // Apply search filter
-        if (searchQuery.trim()) {
-          const query = searchQuery.toLowerCase();
+          // Apply search filter
           filteredProjects = filteredProjects.filter(
             (project) =>
               project.title.toLowerCase().includes(query) ||
               project.description.toLowerCase().includes(query)
           );
-        }
 
-        // Apply sorting
-        if (sortOption === "deadline") {
-          filteredProjects.sort((a, b) => {
-            return sortDirection === "asc"
-              ? a.daysRemaining - b.daysRemaining
-              : b.daysRemaining - a.daysRemaining;
-          });
-        } else if (sortOption === "title") {
-          filteredProjects.sort((a, b) => {
-            return sortDirection === "asc"
-              ? a.title.localeCompare(b.title)
-              : b.title.localeCompare(a.title);
-          });
-        } else {
-          // Default to project order
-          filteredProjects.sort((a, b) => a.order - b.order);
-        }
+          return {
+            ...category,
+            projects: filteredProjects,
+          };
+        });
 
-        return {
-          ...category,
-          projects: filteredProjects,
-        };
-      });
-
-      // Remove empty categories (with no projects after filtering)
-      filteredCategories = filteredCategories.filter(
-        (category) => category.projects.length > 0
-      );
+        // Remove empty categories (with no projects after filtering)
+        filteredCategories = filteredCategories.filter(
+          (category) => category.projects.length > 0
+        );
+      }
 
       // Update state with filtered data
       setProjectCategories(filteredCategories);
     } catch (err) {
       console.error("Error applying filters:", err);
     }
-  }, [statusFilter, searchQuery, sortOption, sortDirection, loading]);
+  }, [searchQuery, loading]);
 
   // Toggle category expansion
   const toggleCategory = (categoryId: string) => {
@@ -164,23 +98,6 @@ export default function ProjectsPage() {
       newExpandedCategories.add(categoryId);
     }
     setExpandedCategories(newExpandedCategories);
-  };
-
-  // Handle sort change
-  const handleSortChange = (value: string) => {
-    if (value === "deadline-asc") {
-      setSortOption("deadline");
-      setSortDirection("asc");
-    } else if (value === "deadline-desc") {
-      setSortOption("deadline");
-      setSortDirection("desc");
-    } else if (value === "title-asc") {
-      setSortOption("title");
-      setSortDirection("asc");
-    } else if (value === "title-desc") {
-      setSortOption("title");
-      setSortDirection("desc");
-    }
   };
 
   // Loading state
@@ -240,7 +157,7 @@ export default function ProjectsPage() {
   }
 
   // Empty state - No projects at all
-  if (!loading && flatProjects.length === 0) {
+  if (!loading && projectCategories.length === 0) {
     return (
       <div className="container mx-auto px-4 py-8 max-w-6xl">
         <div className="flex items-center justify-between mb-8">
@@ -276,21 +193,17 @@ export default function ProjectsPage() {
     );
   }
 
-  // Empty state - Projects exist but none match filters
-  if (
-    !loading &&
-    projectCategories.length === 0 &&
-    (statusFilter !== "all" || searchQuery)
-  ) {
+  // Empty state - Projects exist but none match search
+  if (!loading && projectCategories.length === 0 && searchQuery) {
     return (
       <div className="container mx-auto px-4 py-8 max-w-6xl">
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-2xl font-bold text-slate-900">My Projects</h1>
         </div>
 
-        {/* Filter controls */}
-        <div className="mb-8 flex flex-col md:flex-row gap-4 items-start md:items-center">
-          <div className="relative flex-1">
+        {/* Search control */}
+        <div className="mb-8">
+          <div className="relative">
             <Search
               className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400"
               size={18}
@@ -302,81 +215,24 @@ export default function ProjectsPage() {
               className="pl-10 border-slate-200"
             />
           </div>
-          <div className="flex gap-2">
-            <Tabs
-              value={statusFilter}
-              onValueChange={(v) => setStatusFilter(v as ProjectStatus | "all")}
-              className="w-full md:w-auto"
-            >
-              <TabsList className="grid grid-cols-4 w-full md:w-auto">
-                <TabsTrigger value="all" className="text-xs">
-                  All
-                </TabsTrigger>
-                <TabsTrigger value="notStarted" className="text-xs">
-                  Not Started
-                </TabsTrigger>
-                <TabsTrigger value="inProgress" className="text-xs">
-                  In Progress
-                </TabsTrigger>
-                <TabsTrigger value="submitted" className="text-xs">
-                  Submitted
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-10 w-10 border-slate-200"
-                >
-                  <SortDesc size={16} />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem
-                  onClick={() => handleSortChange("deadline-asc")}
-                >
-                  Deadline (Earliest first)
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => handleSortChange("deadline-desc")}
-                >
-                  Deadline (Latest first)
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleSortChange("title-asc")}>
-                  Title (A-Z)
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => handleSortChange("title-desc")}
-                >
-                  Title (Z-A)
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
         </div>
 
         <div className="bg-white p-8 rounded-xl shadow-sm text-center border border-slate-100">
           <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6">
-            <Filter size={28} className="text-slate-400" />
+            <Search size={28} className="text-slate-400" />
           </div>
           <h2 className="text-xl font-semibold text-slate-800 mb-2">
             No projects found
           </h2>
           <p className="text-slate-600 mb-6">
-            No projects match your current filters. Try adjusting your search or
-            filter criteria.
+            No projects match your search. Try adjusting your search criteria.
           </p>
           <Button
             variant="outline"
-            onClick={() => {
-              setStatusFilter("all");
-              setSearchQuery("");
-            }}
+            onClick={() => setSearchQuery("")}
             className="border-slate-200"
           >
-            Clear Filters
+            Clear Search
           </Button>
         </div>
       </div>
@@ -390,9 +246,9 @@ export default function ProjectsPage() {
         <h1 className="text-2xl font-bold text-slate-900">My Projects</h1>
       </div>
 
-      {/* Filter controls */}
-      <div className="mb-8 flex flex-col md:flex-row gap-4 items-start md:items-center">
-        <div className="relative flex-1">
+      {/* Search control */}
+      <div className="mb-8">
+        <div className="relative">
           <Search
             className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400"
             size={18}
@@ -403,69 +259,6 @@ export default function ProjectsPage() {
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10 border-slate-200"
           />
-        </div>
-        <div className="flex gap-2">
-          <Tabs
-            value={statusFilter}
-            onValueChange={(v) => setStatusFilter(v as ProjectStatus | "all")}
-            className="w-full md:w-auto"
-          >
-            <TabsList className="grid grid-cols-4 w-full md:w-auto">
-              <TabsTrigger value="all" className="text-xs">
-                All
-                <span className="ml-1 bg-slate-100 text-slate-700 rounded-full px-1.5 py-0.5 text-xs">
-                  {projectCounts.all}
-                </span>
-              </TabsTrigger>
-              <TabsTrigger value="notStarted" className="text-xs">
-                Not Started
-                <span className="ml-1 bg-slate-100 text-slate-700 rounded-full px-1.5 py-0.5 text-xs">
-                  {projectCounts.notStarted}
-                </span>
-              </TabsTrigger>
-              <TabsTrigger value="inProgress" className="text-xs">
-                In Progress
-                <span className="ml-1 bg-amber-100 text-amber-700 rounded-full px-1.5 py-0.5 text-xs">
-                  {projectCounts.inProgress}
-                </span>
-              </TabsTrigger>
-              <TabsTrigger value="submitted" className="text-xs">
-                Submitted
-                <span className="ml-1 bg-emerald-100 text-emerald-700 rounded-full px-1.5 py-0.5 text-xs">
-                  {projectCounts.submitted}
-                </span>
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-10 w-10 border-slate-200"
-              >
-                <SortDesc size={16} />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem
-                onClick={() => handleSortChange("deadline-asc")}
-              >
-                Deadline (Earliest first)
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => handleSortChange("deadline-desc")}
-              >
-                Deadline (Latest first)
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleSortChange("title-asc")}>
-                Title (A-Z)
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleSortChange("title-desc")}>
-                Title (Z-A)
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
         </div>
       </div>
 
@@ -488,7 +281,6 @@ export default function ProjectsPage() {
                   <div className="flex items-center space-x-3">
                     {category.imageUrl && (
                       <div className="w-10 h-10 bg-slate-100 rounded overflow-hidden flex-shrink-0">
-                        {/* Image would go here in production */}
                         <div
                           className="w-full h-full flex items-center justify-center bg-indigo-50"
                           style={{ backgroundColor: "#e6f0ff" }}

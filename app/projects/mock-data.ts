@@ -1,7 +1,4 @@
-import {
-  ProjectWithStatus,
-  ProjectCategoryWithProjects,
-} from "./types/project";
+import { Project, ProjectCategoryWithProjects } from "./types/project";
 
 /**
  * Mock project categories with their projects for development and preview
@@ -13,9 +10,6 @@ export const MOCK_CATEGORIES: ProjectCategoryWithProjects[] = [
     description:
       "Projects focused on end-to-end web application development using modern JavaScript frameworks.",
     imageUrl: "/images/categories/fullstack.jpg",
-    createdAt: new Date(Date.now() - 40 * 24 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date(Date.now() - 40 * 24 * 60 * 60 * 1000).toISOString(),
-    order: 1,
     projects: [
       {
         id: "proj-1",
@@ -44,7 +38,6 @@ export const MOCK_CATEGORIES: ProjectCategoryWithProjects[] = [
           "Tailwind CSS",
           "Firebase (optional)",
         ],
-        deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days from now
         submissionProcess:
           "Submit GitHub repository link and deployed URL through the submission form.",
         supportInfo:
@@ -52,15 +45,6 @@ export const MOCK_CATEGORIES: ProjectCategoryWithProjects[] = [
         projectBriefUrl: "/files/project-brief-1.pdf",
         videoGuidelines:
           "Create a 3-5 minute walkthrough video demonstrating your website's functionality.",
-        createdAt: new Date(
-          Date.now() - 14 * 24 * 60 * 60 * 1000
-        ).toISOString(),
-        updatedAt: new Date(
-          Date.now() - 14 * 24 * 60 * 60 * 1000
-        ).toISOString(),
-        order: 1,
-        status: "inProgress",
-        daysRemaining: 7,
       },
       {
         id: "proj-2",
@@ -90,7 +74,6 @@ export const MOCK_CATEGORIES: ProjectCategoryWithProjects[] = [
           "JWT",
           "Postman",
         ],
-        deadline: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(), // 14 days from now
         submissionProcess:
           "Submit GitHub repository and documentation through the submission form.",
         supportInfo:
@@ -98,11 +81,6 @@ export const MOCK_CATEGORIES: ProjectCategoryWithProjects[] = [
         projectBriefUrl: "/files/project-brief-4.pdf",
         videoGuidelines:
           "Create a video demonstrating API endpoints using Postman.",
-        createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-        updatedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-        order: 2,
-        status: "notStarted",
-        daysRemaining: 14,
       },
     ],
   },
@@ -112,9 +90,6 @@ export const MOCK_CATEGORIES: ProjectCategoryWithProjects[] = [
     description:
       "Projects involving data processing, analysis, and visualization techniques.",
     imageUrl: "/images/categories/datascience.jpg",
-    createdAt: new Date(Date.now() - 40 * 24 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date(Date.now() - 40 * 24 * 60 * 60 * 1000).toISOString(),
-    order: 2,
     projects: [
       {
         id: "proj-3",
@@ -144,22 +119,12 @@ export const MOCK_CATEGORIES: ProjectCategoryWithProjects[] = [
           "seaborn",
           "Jupyter",
         ],
-        deadline: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days from now
         submissionProcess:
           "Submit Jupyter notebook and PDF report through the submission form.",
         supportInfo:
           "Weekly office hours: Thursdays 1-3pm. Join the course Discord for peer support.",
         projectBriefUrl: "/files/project-brief-2.pdf",
         videoGuidelines: "Not required for this project.",
-        createdAt: new Date(
-          Date.now() - 10 * 24 * 60 * 60 * 1000
-        ).toISOString(),
-        updatedAt: new Date(
-          Date.now() - 10 * 24 * 60 * 60 * 1000
-        ).toISOString(),
-        order: 1,
-        status: "inProgress",
-        daysRemaining: 2,
       },
       {
         id: "proj-4",
@@ -189,7 +154,6 @@ export const MOCK_CATEGORIES: ProjectCategoryWithProjects[] = [
           "Flask",
           "HTML/CSS/JavaScript",
         ],
-        deadline: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(), // 5 days ago (overdue)
         submissionProcess:
           "Submit GitHub repository, Jupyter notebook, and deployment URL through the submission form.",
         supportInfo:
@@ -197,15 +161,6 @@ export const MOCK_CATEGORIES: ProjectCategoryWithProjects[] = [
         projectBriefUrl: "/files/project-brief-5.pdf",
         videoGuidelines:
           "Create a video demonstrating your model's functionality.",
-        createdAt: new Date(
-          Date.now() - 30 * 24 * 60 * 60 * 1000
-        ).toISOString(),
-        updatedAt: new Date(
-          Date.now() - 30 * 24 * 60 * 60 * 1000
-        ).toISOString(),
-        order: 2,
-        status: "submitted",
-        daysRemaining: -5,
       },
     ],
   },
@@ -215,9 +170,6 @@ export const MOCK_CATEGORIES: ProjectCategoryWithProjects[] = [
     description:
       "Projects focused on user interface design, user experience, and prototyping.",
     imageUrl: "/images/categories/uiux.jpg",
-    createdAt: new Date(Date.now() - 40 * 24 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date(Date.now() - 40 * 24 * 60 * 60 * 1000).toISOString(),
-    order: 3,
     projects: [
       {
         id: "proj-5",
@@ -241,7 +193,6 @@ export const MOCK_CATEGORIES: ProjectCategoryWithProjects[] = [
           "Prototype link",
         ],
         toolsAndTechnologies: ["Figma", "Adobe Color", "UI design principles"],
-        deadline: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(), // 1 day ago (overdue)
         submissionProcess:
           "Submit Figma link and documentation through the submission form.",
         supportInfo:
@@ -249,15 +200,6 @@ export const MOCK_CATEGORIES: ProjectCategoryWithProjects[] = [
         projectBriefUrl: "/files/project-brief-3.pdf",
         videoGuidelines:
           "Create a 2-minute video walking through your design process and decisions.",
-        createdAt: new Date(
-          Date.now() - 20 * 24 * 60 * 60 * 1000
-        ).toISOString(),
-        updatedAt: new Date(
-          Date.now() - 20 * 24 * 60 * 60 * 1000
-        ).toISOString(),
-        order: 1,
-        status: "submitted",
-        daysRemaining: -1,
       },
       {
         id: "proj-8",
@@ -281,22 +223,12 @@ export const MOCK_CATEGORIES: ProjectCategoryWithProjects[] = [
           "Usage guidelines document",
         ],
         toolsAndTechnologies: ["Figma", "Storybook", "Design principles"],
-        deadline: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(), // 5 days from now
         submissionProcess:
           "Submit Figma library link and documentation through the submission form.",
         supportInfo: "Design system workshops on Wednesdays at 2pm.",
         projectBriefUrl: "/files/project-brief-8.pdf",
         videoGuidelines:
           "Create a video walkthrough of your design system highlighting key components.",
-        createdAt: new Date(
-          Date.now() - 15 * 24 * 60 * 60 * 1000
-        ).toISOString(),
-        updatedAt: new Date(
-          Date.now() - 15 * 24 * 60 * 60 * 1000
-        ).toISOString(),
-        order: 2,
-        status: "notStarted",
-        daysRemaining: 5,
       },
     ],
   },
@@ -305,6 +237,6 @@ export const MOCK_CATEGORIES: ProjectCategoryWithProjects[] = [
 /**
  * Flatten projects for when a flat list is needed
  */
-export const MOCK_PROJECTS: ProjectWithStatus[] = MOCK_CATEGORIES.flatMap(
+export const MOCK_PROJECTS: Project[] = MOCK_CATEGORIES.flatMap(
   (category) => category.projects
 );
