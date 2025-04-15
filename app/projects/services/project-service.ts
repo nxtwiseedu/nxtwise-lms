@@ -1,6 +1,6 @@
 /**
  * Project service for interacting with Firebase
- * Revised to support hierarchical project structure
+ * Simplified to support basic project structure without status tracking
  */
 import {
   collection,
@@ -9,18 +9,11 @@ import {
   getDocs,
   query,
   where,
-  orderBy,
-  Timestamp,
-  setDoc,
-  updateDoc,
 } from "firebase/firestore";
 import { db } from "@/app/lib/firebase";
 import { getCurrentUser, convertDoc, getFileUrl } from "@/app/lib/client";
 import {
   Project,
-  ProjectWithStatus,
-  ProjectStatus,
-  ProjectFilterOptions,
   UserProject,
   ProjectCategory,
   ProjectCategoryWithProjects,
@@ -32,8 +25,7 @@ import {
 export const getProjectCategories = async (): Promise<ProjectCategory[]> => {
   try {
     const categoriesRef = collection(db, "projectCategories");
-    const categoriesQuery = query(categoriesRef, orderBy("order", "asc"));
-    const categoriesSnapshot = await getDocs(categoriesQuery);
+    const categoriesSnapshot = await getDocs(categoriesRef);
 
     const categories: ProjectCategory[] = [];
     categoriesSnapshot.forEach((doc) => {
@@ -71,12 +63,9 @@ export const getProjectCategoryById = async (
 /**
  * Get projects assigned to the current user, organized by categories
  */
-export const getUserProjectsByCategory = async (
-  filterOptions: ProjectFilterOptions = {
-    sortBy: "deadline",
-    sortDirection: "asc",
-  }
-): Promise<ProjectCategoryWithProjects[]> => {
+export const getUserProjectsByCategory = async (): Promise<
+  ProjectCategoryWithProjects[]
+> => {
   try {
     const currentUser = getCurrentUser();
     if (!currentUser) {
@@ -107,7 +96,7 @@ export const getUserProjectsByCategory = async (
     }
 
     // Get all assigned projects
-    const projectsMap = new Map<string, ProjectWithStatus>();
+    const projectsMap = new Map<string, Project>();
     const categoryIds = new Set<string>();
 
     for (const projectId of projectIds) {
@@ -116,66 +105,7 @@ export const getUserProjectsByCategory = async (
       if (projectDoc.exists()) {
         const project = convertDoc<Project>(projectDoc);
         categoryIds.add(project.categoryId);
-
-        // Get user's submission for this project (if any)
-        const submissionsRef = collection(db, "submissions");
-        const submissionQuery = query(
-          submissionsRef,
-          where("projectId", "==", project.id),
-          where("userId", "==", currentUser.uid)
-        );
-
-        const submissionSnapshot = await getDocs(submissionQuery);
-
-        // Determine project status
-        let status: ProjectStatus = "notStarted";
-        if (submissionSnapshot.size > 0) {
-          status = "submitted";
-        } else {
-          // Check if user has interacted with project (e.g., opened it)
-          const interactionRef = collection(db, "projectInteractions");
-          const interactionQuery = query(
-            interactionRef,
-            where("projectId", "==", project.id),
-            where("userId", "==", currentUser.uid)
-          );
-
-          const interactionSnapshot = await getDocs(interactionQuery);
-          if (interactionSnapshot.size > 0) {
-            status = "inProgress";
-          }
-        }
-
-        // Calculate days remaining until deadline
-        const deadline = new Date(project.deadline);
-        const today = new Date();
-        const daysRemaining = Math.ceil(
-          (deadline.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
-        );
-
-        projectsMap.set(project.id, {
-          ...project,
-          status,
-          daysRemaining,
-        });
-      }
-    }
-
-    // Apply filtering by status if specified
-    if (filterOptions.status) {
-      for (const [id, project] of projectsMap.entries()) {
-        if (project.status !== filterOptions.status) {
-          projectsMap.delete(id);
-        }
-      }
-    }
-
-    // Filter by category if specified
-    if (filterOptions.categoryId) {
-      for (const [id, project] of projectsMap.entries()) {
-        if (project.categoryId !== filterOptions.categoryId) {
-          projectsMap.delete(id);
-        }
+        projectsMap.set(project.id, project);
       }
     }
 
@@ -195,46 +125,17 @@ export const getUserProjectsByCategory = async (
           (project) => project.categoryId === categoryId
         );
 
-        // Skip categories with no visible projects (after filtering)
+        // Skip categories with no visible projects
         if (categoryProjects.length === 0) {
           continue;
         }
 
-        // Sort projects within the category
-        const sortedProjects = [...categoryProjects];
-        if (filterOptions.sortBy === "deadline") {
-          sortedProjects.sort((a, b) => {
-            return filterOptions.sortDirection === "asc"
-              ? a.daysRemaining - b.daysRemaining
-              : b.daysRemaining - a.daysRemaining;
-          });
-        } else if (filterOptions.sortBy === "title") {
-          sortedProjects.sort((a, b) => {
-            return filterOptions.sortDirection === "asc"
-              ? a.title.localeCompare(b.title)
-              : b.title.localeCompare(a.title);
-          });
-        } else if (filterOptions.sortBy === "status") {
-          const statusOrder = { submitted: 0, inProgress: 1, notStarted: 2 };
-          sortedProjects.sort((a, b) => {
-            return filterOptions.sortDirection === "asc"
-              ? statusOrder[a.status] - statusOrder[b.status]
-              : statusOrder[b.status] - statusOrder[a.status];
-          });
-        } else {
-          // Default to sorting by project order within category
-          sortedProjects.sort((a, b) => a.order - b.order);
-        }
-
         categories.push({
           ...category,
-          projects: sortedProjects,
+          projects: categoryProjects,
         });
       }
     }
-
-    // Sort categories by order
-    categories.sort((a, b) => a.order - b.order);
 
     return categories;
   } catch (error) {
@@ -246,41 +147,14 @@ export const getUserProjectsByCategory = async (
 /**
  * Get a flat list of projects assigned to the current user
  */
-export const getUserProjects = async (
-  filterOptions: ProjectFilterOptions = {
-    sortBy: "deadline",
-    sortDirection: "asc",
-  }
-): Promise<ProjectWithStatus[]> => {
+export const getUserProjects = async (): Promise<Project[]> => {
   try {
-    const categorizedProjects = await getUserProjectsByCategory(filterOptions);
+    const categorizedProjects = await getUserProjectsByCategory();
 
     // Flatten the projects from all categories
-    const allProjects: ProjectWithStatus[] = [];
+    const allProjects: Project[] = [];
     for (const category of categorizedProjects) {
       allProjects.push(...category.projects);
-    }
-
-    // Apply global sorting if needed
-    if (filterOptions.sortBy === "deadline") {
-      allProjects.sort((a, b) => {
-        return filterOptions.sortDirection === "asc"
-          ? a.daysRemaining - b.daysRemaining
-          : b.daysRemaining - a.daysRemaining;
-      });
-    } else if (filterOptions.sortBy === "title") {
-      allProjects.sort((a, b) => {
-        return filterOptions.sortDirection === "asc"
-          ? a.title.localeCompare(b.title)
-          : b.title.localeCompare(a.title);
-      });
-    } else if (filterOptions.sortBy === "status") {
-      const statusOrder = { submitted: 0, inProgress: 1, notStarted: 2 };
-      allProjects.sort((a, b) => {
-        return filterOptions.sortDirection === "asc"
-          ? statusOrder[a.status] - statusOrder[b.status]
-          : statusOrder[b.status] - statusOrder[a.status];
-      });
     }
 
     return allProjects;
@@ -352,50 +226,5 @@ export const canUserAccessProject = async (
   } catch (error) {
     console.error("Error checking project access:", error);
     return false;
-  }
-};
-
-/**
- * Record that a user has interacted with a project (viewed it)
- */
-export const recordProjectInteraction = async (
-  projectId: string
-): Promise<void> => {
-  try {
-    const currentUser = getCurrentUser();
-    if (!currentUser) {
-      throw new Error("User not authenticated");
-    }
-
-    // Check if interaction already exists
-    const interactionRef = collection(db, "projectInteractions");
-    const interactionQuery = query(
-      interactionRef,
-      where("projectId", "==", projectId),
-      where("userId", "==", currentUser.uid)
-    );
-
-    const interactionSnapshot = await getDocs(interactionQuery);
-
-    if (interactionSnapshot.empty) {
-      // Create new interaction record
-      const newInteractionRef = doc(collection(db, "projectInteractions"));
-      await setDoc(newInteractionRef, {
-        projectId,
-        userId: currentUser.uid,
-        firstViewedAt: Timestamp.now(),
-        lastViewedAt: Timestamp.now(),
-        viewCount: 1,
-      });
-    } else {
-      // Update existing interaction
-      const interactionDoc = interactionSnapshot.docs[0];
-      await updateDoc(interactionDoc.ref, {
-        lastViewedAt: Timestamp.now(),
-        viewCount: interactionDoc.data().viewCount + 1,
-      });
-    }
-  } catch (error) {
-    console.error("Error recording project interaction:", error);
   }
 };
