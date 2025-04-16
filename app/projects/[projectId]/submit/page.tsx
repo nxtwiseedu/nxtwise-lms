@@ -4,10 +4,10 @@ import React, { useState } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
-  Upload,
   Link as LinkIcon,
   AlertCircle,
   Check,
+  FileCode,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -36,13 +36,12 @@ export default function ProjectSubmissionPage() {
 
   // Form state
   const [githubUrl, setGithubUrl] = useState("");
+  const [driveUrl, setDriveUrl] = useState("");
   const [videoUrl, setVideoUrl] = useState("");
   const [comments, setComments] = useState("");
-  const [fileSelected, setFileSelected] = useState(false);
-  const [fileName, setFileName] = useState("");
   const [formErrors, setFormErrors] = useState<{
     githubUrl?: string;
-    file?: string;
+    driveUrl?: string;
     videoUrl?: string;
   }>({});
 
@@ -50,25 +49,11 @@ export default function ProjectSubmissionPage() {
   const [showDialog, setShowDialog] = useState(false);
   const [submissionSuccess, setSubmissionSuccess] = useState(false);
 
-  // Handle file selection
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      setFileSelected(true);
-      setFileName(e.target.files[0].name);
-
-      // Clear any file error
-      setFormErrors((prev) => ({ ...prev, file: undefined }));
-    } else {
-      setFileSelected(false);
-      setFileName("");
-    }
-  };
-
   // Validate form
   const validateForm = () => {
     const errors: {
       githubUrl?: string;
-      file?: string;
+      driveUrl?: string;
       videoUrl?: string;
     } = {};
 
@@ -82,9 +67,14 @@ export default function ProjectSubmissionPage() {
       errors.githubUrl = "Please enter a valid GitHub URL";
     }
 
-    // Check if file is selected
-    if (!fileSelected) {
-      errors.file = "Please upload your project file";
+    // Check Drive URL
+    if (!driveUrl.trim()) {
+      errors.driveUrl = "Google Drive link is required";
+    } else if (
+      !driveUrl.includes("drive.google.com") &&
+      !driveUrl.includes("docs.google.com")
+    ) {
+      errors.driveUrl = "Please enter a valid Google Drive URL";
     }
 
     // Check video URL if it's required
@@ -272,52 +262,43 @@ export default function ProjectSubmissionPage() {
               </p>
             </div>
 
-            {/* File upload field */}
+            {/* Google Drive Link field */}
             <div className="mb-6">
-              <Label htmlFor="project-file" className="block mb-2">
-                Upload Project Files <span className="text-red-500">*</span>
+              <Label htmlFor="drive-url" className="block mb-2">
+                Google Drive Link <span className="text-red-500">*</span>
               </Label>
-              <div className="grid gap-2">
-                <Label
-                  htmlFor="project-file"
-                  className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer hover:bg-slate-50 transition-colors ${
-                    formErrors.file
-                      ? "border-red-300 bg-red-50"
-                      : "border-slate-200"
-                  } ${fileSelected ? "bg-blue-50 border-blue-200" : ""}`}
-                >
-                  {fileSelected ? (
-                    <div className="flex flex-col items-center justify-center py-6">
-                      <Check size={24} className="text-green-500 mb-2" />
-                      <p className="text-sm font-medium text-slate-700">
-                        {fileName}
-                      </p>
-                      <p className="text-xs text-slate-500 mt-1">
-                        Click to change file
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center py-6">
-                      <Upload size={24} className="text-slate-400 mb-2" />
-                      <p className="text-sm font-medium text-slate-700">
-                        Click to upload or drag and drop
-                      </p>
-                      <p className="text-xs text-slate-500 mt-1">
-                        ZIP, PDF, or other project files (max. 50MB)
-                      </p>
-                    </div>
-                  )}
-                </Label>
-                <input
-                  id="project-file"
-                  type="file"
-                  className="hidden"
-                  onChange={handleFileChange}
+              <div className="relative">
+                <FileCode
+                  size={18}
+                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400"
+                />
+                <Input
+                  id="drive-url"
+                  placeholder="https://drive.google.com/file/d/..."
+                  className={`pl-10 ${
+                    formErrors.driveUrl ? "border-red-300" : "border-slate-200"
+                  }`}
+                  value={driveUrl}
+                  onChange={(e) => {
+                    setDriveUrl(e.target.value);
+                    if (formErrors.driveUrl) {
+                      setFormErrors((prev) => ({
+                        ...prev,
+                        driveUrl: undefined,
+                      }));
+                    }
+                  }}
                 />
               </div>
-              {formErrors.file && (
-                <p className="text-red-500 text-sm mt-1">{formErrors.file}</p>
+              {formErrors.driveUrl && (
+                <p className="text-red-500 text-sm mt-1">
+                  {formErrors.driveUrl}
+                </p>
               )}
+              <p className="text-slate-500 text-sm mt-1">
+                Upload your project files to Google Drive and share the link
+                here. Make sure the link is publicly accessible.
+              </p>
             </div>
 
             {/* Video URL field */}
@@ -389,7 +370,8 @@ export default function ProjectSubmissionPage() {
               <AlertTitle>Before submitting</AlertTitle>
               <AlertDescription>
                 Make sure your submission includes all required deliverables and
-                follows the project guidelines.
+                follows the project guidelines. Check that your Google Drive
+                link is publicly accessible.
               </AlertDescription>
             </Alert>
 
@@ -438,14 +420,15 @@ export default function ProjectSubmissionPage() {
                 <li className="text-sm text-slate-600">
                   <span className="font-medium">GitHub URL:</span> {githubUrl}
                 </li>
+                <li className="text-sm text-slate-600">
+                  <span className="font-medium">Google Drive URL:</span>{" "}
+                  {driveUrl}
+                </li>
                 {videoUrl && (
                   <li className="text-sm text-slate-600">
                     <span className="font-medium">Video URL:</span> {videoUrl}
                   </li>
                 )}
-                <li className="text-sm text-slate-600">
-                  <span className="font-medium">File:</span> {fileName}
-                </li>
               </ul>
 
               <DialogFooter className="mt-6">
