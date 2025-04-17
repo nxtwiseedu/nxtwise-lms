@@ -1,21 +1,27 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
+  FileIcon,
   ExternalLink,
+  Download,
   Calendar,
   CheckCircle,
   Github,
   Clock,
   FileCode,
+  AlertTriangle,
+  RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 // Firebase imports
 import { collection, query, where, getDocs } from "firebase/firestore";
@@ -33,13 +39,18 @@ interface Submission {
   videoUrl?: string;
   comments?: string;
   submittedAt: string;
-  status: "submitted" | "reviewed" | "returned";
+  status: "submitted" | "reviewed" | "returned" | "resubmitted";
   feedback?: string;
+  resubmissionAllowed?: boolean;
+  returnedAt?: string;
+  resubmittedAt?: string;
+  previousVersionId?: string;
   grade?: number;
 }
 
 export default function ProjectStatusPage() {
   const params = useParams();
+  const router = useRouter();
   const projectId = params?.projectId as string;
 
   // State variables
@@ -119,10 +130,14 @@ export default function ProjectStatusPage() {
         hour: "2-digit",
         minute: "2-digit",
       });
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (e) {
       return "Invalid date";
     }
+  };
+
+  // Handle resubmission
+  const handleResubmit = () => {
+    router.push(`/projects/${projectId}/submit?resubmit=true`);
   };
 
   // Loading state
@@ -333,19 +348,24 @@ export default function ProjectStatusPage() {
   // Status badge configurations
   const statusConfig = {
     submitted: {
-      color: "bg-green-100 text-green-700 hover:bg-green-100",
+      color: "bg-blue-100 text-blue-700 hover:bg-blue-100",
       icon: CheckCircle,
       label: "Submitted",
     },
     reviewed: {
-      color: "bg-blue-100 text-blue-700 hover:bg-blue-100",
+      color: "bg-green-100 text-green-700 hover:bg-green-100",
       icon: CheckCircle,
       label: "Reviewed",
     },
     returned: {
       color: "bg-amber-100 text-amber-700 hover:bg-amber-100",
-      icon: Clock,
-      label: "Returned for Updates",
+      icon: AlertTriangle,
+      label: "Returned for Resubmission",
+    },
+    resubmitted: {
+      color: "bg-purple-100 text-purple-700 hover:bg-purple-100",
+      icon: RefreshCw,
+      label: "Resubmitted",
     },
   };
 
@@ -373,6 +393,30 @@ export default function ProjectStatusPage() {
         <p className="text-slate-600">{project.title}</p>
       </div>
 
+      {/* Resubmission alert */}
+      {submission.status === "returned" && submission.resubmissionAllowed && (
+        <Alert className="mb-6 border-amber-200 bg-amber-50" variant="default">
+          <AlertTriangle className="h-4 w-4 text-amber-600" />
+          <AlertTitle className="text-amber-800">
+            Action Required: Resubmission Requested
+          </AlertTitle>
+          <AlertDescription className="text-amber-700">
+            Your instructor has requested that you resubmit this project. Please
+            review the feedback below and make the necessary changes before
+            resubmitting.
+          </AlertDescription>
+          <div className="mt-4">
+            <Button
+              className="hover:opacity-90 transition-all"
+              style={{ backgroundColor: "#004aad" }}
+              onClick={handleResubmit}
+            >
+              Resubmit Project
+            </Button>
+          </div>
+        </Alert>
+      )}
+
       {/* Status card */}
       <Card className="mb-8">
         <CardHeader className="pb-3">
@@ -389,6 +433,11 @@ export default function ProjectStatusPage() {
             <Calendar size={16} className="text-slate-400 mr-2" />
             <span className="text-sm text-slate-600">
               Submitted on {formatDate(submission.submittedAt)}
+              {submission.resubmittedAt && (
+                <span className="ml-1">
+                  (Resubmitted on {formatDate(submission.resubmittedAt)})
+                </span>
+              )}
             </span>
           </div>
 
@@ -510,7 +559,7 @@ export default function ProjectStatusPage() {
               </div>
             )}
 
-            {/* Instructor Feedback (if available) */}
+            {/* Instructor Feedback */}
             {submission.feedback && (
               <div>
                 <h3 className="text-sm font-medium text-slate-700 mb-2">
