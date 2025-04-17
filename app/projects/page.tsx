@@ -12,11 +12,14 @@ import {
 } from "@/components/ui/collapsible";
 import { Button } from "@/components/ui/button";
 
-// Import mock data (you'll need to adjust this based on your simplified types)
-import { MOCK_CATEGORIES } from "./mock-data";
+// Import Firebase service
+import { getUserProjectsByCategory } from "./services/project-service";
 
 export default function ProjectsPage() {
   const [projectCategories, setProjectCategories] = useState<
+    ProjectCategoryWithProjects[]
+  >([]);
+  const [allProjectCategories, setAllProjectCategories] = useState<
     ProjectCategoryWithProjects[]
   >([]);
   const [loading, setLoading] = useState(true);
@@ -26,45 +29,49 @@ export default function ProjectsPage() {
     new Set()
   );
 
-  // Load mock projects on component mount
+  // Load projects from Firebase on component mount
   useEffect(() => {
-    // Simulate loading delay
-    const loadTimer = setTimeout(() => {
+    const fetchProjects = async () => {
       try {
-        setProjectCategories(MOCK_CATEGORIES);
+        setLoading(true);
+
+        // Fetch projects from Firebase
+        const categories = await getUserProjectsByCategory();
+
+        setAllProjectCategories(categories);
+        setProjectCategories(categories);
 
         // Expand all categories by default
         const newExpandedSet = new Set<string>();
-        MOCK_CATEGORIES.forEach((category) => newExpandedSet.add(category.id));
+        categories.forEach((category) => newExpandedSet.add(category.id));
         setExpandedCategories(newExpandedSet);
-
-        setLoading(false);
       } catch (err) {
-        setError("Failed to load projects. Please try again later.");
-        setLoading(false);
         console.error("Error loading projects:", err);
+        setError("Failed to load projects. Please try again later.");
+      } finally {
+        setLoading(false);
       }
-    }, 1000); // 1 second loading simulation
+    };
 
-    return () => clearTimeout(loadTimer);
+    fetchProjects();
   }, []);
 
   // Apply search filter when search query changes
   useEffect(() => {
-    if (loading) return;
+    if (loading || !allProjectCategories.length) return;
 
     try {
-      // Start with original mock data
-      let filteredCategories = [...MOCK_CATEGORIES];
+      if (!searchQuery.trim()) {
+        // If search is empty, show all projects
+        setProjectCategories(allProjectCategories);
+        return;
+      }
 
       // Apply search filter
-      if (searchQuery.trim()) {
-        const query = searchQuery.toLowerCase();
-        filteredCategories = filteredCategories.map((category) => {
-          let filteredProjects = [...category.projects];
-
-          // Apply search filter
-          filteredProjects = filteredProjects.filter(
+      const query = searchQuery.toLowerCase();
+      const filteredCategories = allProjectCategories
+        .map((category) => {
+          const filteredProjects = category.projects.filter(
             (project) =>
               project.title.toLowerCase().includes(query) ||
               project.description.toLowerCase().includes(query)
@@ -74,20 +81,14 @@ export default function ProjectsPage() {
             ...category,
             projects: filteredProjects,
           };
-        });
+        })
+        .filter((category) => category.projects.length > 0);
 
-        // Remove empty categories (with no projects after filtering)
-        filteredCategories = filteredCategories.filter(
-          (category) => category.projects.length > 0
-        );
-      }
-
-      // Update state with filtered data
       setProjectCategories(filteredCategories);
     } catch (err) {
       console.error("Error applying filters:", err);
     }
-  }, [searchQuery, loading]);
+  }, [searchQuery, allProjectCategories, loading]);
 
   // Toggle category expansion
   const toggleCategory = (categoryId: string) => {
@@ -157,7 +158,7 @@ export default function ProjectsPage() {
   }
 
   // Empty state - No projects at all
-  if (!loading && projectCategories.length === 0) {
+  if (!loading && projectCategories.length === 0 && !searchQuery) {
     return (
       <div className="container mx-auto px-4 py-8 max-w-6xl">
         <div className="flex items-center justify-between mb-8">

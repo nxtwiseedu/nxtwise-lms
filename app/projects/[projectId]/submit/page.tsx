@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -15,7 +15,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useParams, useRouter } from "next/navigation";
-import { MOCK_PROJECTS } from "../../mock-data";
 import {
   Dialog,
   DialogContent,
@@ -26,13 +25,26 @@ import {
 } from "@/components/ui/dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
+// Firebase imports
+import { collection, addDoc, query, where, getDocs } from "firebase/firestore";
+import { db } from "@/app/lib/firebase";
+import { getCurrentUser } from "@/app/lib/client";
+import { getProjectById } from "../../services/project-service";
+import { Project } from "../../types/project";
+
 export default function ProjectSubmissionPage() {
   const params = useParams();
   const router = useRouter();
   const projectId = params?.projectId as string;
 
-  // Find the project in our mock data
-  const project = MOCK_PROJECTS.find((p) => p.id === projectId);
+  // Project state
+  const [project, setProject] = useState<Project | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Check if user already submitted
+  const [hasSubmitted, setHasSubmitted] = useState(false);
+  const [checkingSubmission, setCheckingSubmission] = useState(true);
 
   // Form state
   const [githubUrl, setGithubUrl] = useState("");
@@ -48,6 +60,56 @@ export default function ProjectSubmissionPage() {
   // Dialog state
   const [showDialog, setShowDialog] = useState(false);
   const [submissionSuccess, setSubmissionSuccess] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  // Fetch project data and check for existing submission
+  useEffect(() => {
+    const fetchProjectAndCheckSubmission = async () => {
+      try {
+        setLoading(true);
+
+        // Fetch the project details
+        const projectData = await getProjectById(projectId);
+        setProject(projectData);
+
+        // Check if user has already submitted this project
+        const currentUser = getCurrentUser();
+        if (!currentUser) {
+          setError("You must be logged in to submit a project");
+          setLoading(false);
+          setCheckingSubmission(false);
+          return;
+        }
+
+        const submissionsRef = collection(db, "submissions");
+        const submissionQuery = query(
+          submissionsRef,
+          where("userId", "==", currentUser.uid),
+          where("projectId", "==", projectId)
+        );
+
+        const submissionSnapshot = await getDocs(submissionQuery);
+
+        if (!submissionSnapshot.empty) {
+          setHasSubmitted(true);
+
+          // Optionally, redirect to status page if already submitted
+          router.push(`/projects/${projectId}/status`);
+        }
+
+        setCheckingSubmission(false);
+      } catch (err) {
+        console.error("Error fetching project or checking submission:", err);
+        setError("Failed to load project details. Please try again later.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (projectId) {
+      fetchProjectAndCheckSubmission();
+    }
+  }, [projectId, router]);
 
   // Validate form
   const validateForm = () => {
@@ -99,19 +161,99 @@ export default function ProjectSubmissionPage() {
     }
   };
 
-  // Confirm submission
-  const confirmSubmission = () => {
-    // Here we would typically make an API call to submit the project
-    // For now, just simulate a successful submission
+  // Confirm submission and save to Firestore
+  const confirmSubmission = async () => {
+    try {
+      setSubmitting(true);
 
-    setSubmissionSuccess(true);
+      const currentUser = getCurrentUser();
+      if (!currentUser) {
+        throw new Error("You must be logged in to submit a project");
+      }
 
-    // Close dialog after a delay and redirect to status page
-    setTimeout(() => {
+      // Create submission document
+      const submissionData = {
+        userId: currentUser.uid,
+        projectId,
+        githubUrl,
+        driveUrl,
+        videoUrl: videoUrl || null,
+        comments: comments || null,
+        submittedAt: new Date().toISOString(),
+        status: "submitted",
+      };
+
+      // Add document to submissions collection
+      const submissionsRef = collection(db, "submissions");
+      await addDoc(submissionsRef, submissionData);
+
+      setSubmissionSuccess(true);
+
+      // Close dialog after a delay and redirect to status page
+      setTimeout(() => {
+        setShowDialog(false);
+        router.push(`/projects/${projectId}/status`);
+      }, 2000);
+    } catch (err) {
+      console.error("Error submitting project:", err);
+      setError("Failed to submit project. Please try again.");
       setShowDialog(false);
-      router.push(`/projects/${projectId}/status`);
-    }, 2000);
+    } finally {
+      setSubmitting(false);
+    }
   };
+
+  // Loading state
+  if (loading || checkingSubmission) {
+    return (
+      <div className="container mx-auto px-4 py-10 max-w-4xl flex items-center justify-center">
+        <div className="text-center">
+          <div
+            className="w-16 h-16 border-4 border-t-indigo-600 border-r-indigo-300 border-b-transparent border-l-transparent rounded-full animate-spin mx-auto"
+            style={{ borderTopColor: "#004aad" }}
+          ></div>
+          <p className="mt-4 text-slate-700 font-medium">
+            Loading project details...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="container mx-auto px-4 py-10 max-w-4xl">
+        <div className="mb-6">
+          <Link
+            href="/projects"
+            className="inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-800"
+            style={{ color: "#004aad" }}
+          >
+            <ArrowLeft size={16} className="mr-2" />
+            Back to projects
+          </Link>
+        </div>
+
+        <div className="bg-white p-8 rounded-xl shadow-sm text-center border border-slate-100">
+          <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6">
+            <AlertCircle size={32} className="text-red-500" />
+          </div>
+          <h2 className="text-xl font-semibold text-slate-800 mb-2">
+            Something went wrong
+          </h2>
+          <p className="text-slate-600 mb-6">{error}</p>
+          <Button
+            className="hover:opacity-90 transition-all"
+            style={{ backgroundColor: "#004aad" }}
+            onClick={() => window.location.reload()}
+          >
+            Try Again
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   // Handle case where project is not found
   if (!project) {
@@ -145,6 +287,46 @@ export default function ProjectSubmissionPage() {
             asChild
           >
             <Link href="/projects">Return to Projects</Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Already submitted state (should redirect, but just in case)
+  if (hasSubmitted) {
+    return (
+      <div className="container mx-auto px-4 py-10 max-w-4xl">
+        <div className="mb-6">
+          <Link
+            href="/projects"
+            className="inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-800"
+            style={{ color: "#004aad" }}
+          >
+            <ArrowLeft size={16} className="mr-2" />
+            Back to projects
+          </Link>
+        </div>
+
+        <div className="bg-white p-8 rounded-xl shadow-sm text-center border border-slate-100">
+          <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Check size={32} className="text-green-500" />
+          </div>
+          <h2 className="text-xl font-semibold text-slate-800 mb-2">
+            Project Already Submitted
+          </h2>
+          <p className="text-slate-600 mb-6">
+            You have already submitted this project. You can view your
+            submission status.
+          </p>
+          <Button
+            className="hover:opacity-90 transition-all"
+            style={{ backgroundColor: "#004aad" }}
+            asChild
+          >
+            <Link href={`/projects/${projectId}/status`}>
+              View Submission Status
+            </Link>
           </Button>
         </div>
       </div>
@@ -391,7 +573,7 @@ export default function ProjectSubmissionPage() {
 
       {/* Confirmation Dialog */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-xl w-[95vw] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Confirm Submission</DialogTitle>
             <DialogDescription>
@@ -436,6 +618,7 @@ export default function ProjectSubmissionPage() {
                   variant="outline"
                   onClick={() => setShowDialog(false)}
                   className="border-slate-200"
+                  disabled={submitting}
                 >
                   Cancel
                 </Button>
@@ -443,8 +626,9 @@ export default function ProjectSubmissionPage() {
                   onClick={confirmSubmission}
                   className="hover:opacity-90 transition-all"
                   style={{ backgroundColor: "#004aad" }}
+                  disabled={submitting}
                 >
-                  Confirm Submission
+                  {submitting ? "Submitting..." : "Confirm Submission"}
                 </Button>
               </DialogFooter>
             </div>

@@ -1,19 +1,107 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { ArrowLeft, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useParams } from "next/navigation";
-import { MOCK_PROJECTS } from "../mock-data";
+import { getProjectById } from "../services/project-service"; // Import the Firebase service
+import { Project } from "../types/project";
 
 export default function ProjectDetailPage() {
   const params = useParams();
   const projectId = params?.projectId as string;
 
-  // Find the project in our mock data
-  const project = MOCK_PROJECTS.find((p) => p.id === projectId);
+  // State for project data, loading and error
+  const [project, setProject] = useState<Project | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch project data from Firebase
+  useEffect(() => {
+    const fetchProject = async () => {
+      try {
+        setLoading(true);
+        const projectData = await getProjectById(projectId);
+        setProject(projectData);
+      } catch (err) {
+        console.error("Error fetching project:", err);
+        setError("Failed to load project details. Please try again later.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (projectId) {
+      fetchProject();
+    }
+  }, [projectId]);
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="container mx-auto px-4 py-10 max-w-4xl flex items-center justify-center">
+        <div className="text-center">
+          <div
+            className="w-16 h-16 border-4 border-t-indigo-600 border-r-indigo-300 border-b-transparent border-l-transparent rounded-full animate-spin mx-auto"
+            style={{ borderTopColor: "#004aad" }}
+          ></div>
+          <p className="mt-4 text-slate-700 font-medium">
+            Loading project details...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="container mx-auto px-4 py-10 max-w-4xl">
+        <div className="mb-6">
+          <Link
+            href="/projects"
+            className="inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-800"
+            style={{ color: "#004aad" }}
+          >
+            <ArrowLeft size={16} className="mr-2" />
+            Back to projects
+          </Link>
+        </div>
+
+        <div className="bg-white p-8 rounded-xl shadow-sm text-center border border-slate-100">
+          <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={1.5}
+              stroke="currentColor"
+              className="w-10 h-10 text-red-500"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"
+              />
+            </svg>
+          </div>
+          <h2 className="text-xl font-semibold text-slate-800 mb-2">
+            Something went wrong
+          </h2>
+          <p className="text-slate-600 mb-6">{error}</p>
+          <Button
+            className="hover:opacity-90 transition-all"
+            style={{ backgroundColor: "#004aad" }}
+            onClick={() => window.location.reload()}
+          >
+            Try Again
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   // Handle case where project is not found
   if (!project) {
