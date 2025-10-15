@@ -77,8 +77,8 @@ const NavBar = ({ children }: NavBarProps) => {
         <div className="flex items-center justify-between h-full px-4">
           <div className="flex items-center">
             <Image
-              src="/EdzeetaLogo.svg"
-              alt="Edzeeta Logo"
+              src="/nxtwise-logo.png"
+              alt="Nxtwise Logo"
               width={80} // Higher resolution for quality
               height={40} // Maintain aspect ratio
             />
@@ -137,8 +137,8 @@ const NavBar = ({ children }: NavBarProps) => {
           <div className="h-16 border-b border-gray-100 flex items-center px-6">
             <div className="flex items-center space-x-3">
               <Image
-                src="/EdzeetaLogo.svg"
-                alt="Edzeeta Logo"
+                src="/nxtwise-logo.png"
+                alt="Nxtwise Logo"
                 width={100}
                 height={25}
               />

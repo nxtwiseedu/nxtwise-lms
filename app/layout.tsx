@@ -17,8 +17,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Edzeeta LMS",
-  description: "Edzeeta's learning management system",
+  title: "Nxtwise LMS",
+  description: "Nxtwise's learning management system",
 };
 
 export default function RootLayout({

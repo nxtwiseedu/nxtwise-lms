@@ -72,8 +72,8 @@ export function LoginForm({ form, isLoading, onSubmit }: LoginFormProps) {
           <CardHeader className="space-y-8 relative">
             <div className="flex justify-center transform -translate-y-4">
               <Image
-                src="/EdzeetaLogo.svg"
-                alt="Edzeeta Logo"
+                src="/nxtwise-logo.png"
+                alt="nxtwise Logo"
                 width={300}
                 height={80}
                 priority
@@ -82,7 +82,7 @@ export function LoginForm({ form, isLoading, onSubmit }: LoginFormProps) {
             </div>
             <div className="space-y-2">
               <CardTitle className="text-3xl font-bold text-center text-[#004aad]">
-                Welcome to Edzeeta LMS
+                Welcome to Nxtwise LMS
               </CardTitle>
               <CardDescription className="text-center text-base">
                 Enter your credentials to access your account
