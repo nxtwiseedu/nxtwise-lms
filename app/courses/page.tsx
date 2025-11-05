@@ -158,7 +158,7 @@ export default function CoursesPage() {
                   <Card className="h-full overflow-hidden border-gray-200 bg-white/50 backdrop-blur-sm transition-all flex flex-col">
                     <div className="relative">
                       {/* Thumbnail and progress elements remain the same */}
-                      <div className="h-36 bg-gradient-to-r from-gray-200 to-gray-100 overflow-hidden relative">
+                      <div className="h-64 bg-gradient-to-r from-gray-200 to-gray-100 overflow-hidden relative">
                         <div className="absolute inset-0">
                           {course.thumbnail ? (
                             <Image
@@ -193,11 +193,6 @@ export default function CoursesPage() {
                           />
                         </div>
                       </div>
-
-                      {/* Progress indicator */}
-                      <div className="absolute top-3 right-3">
-                        {/* Progress circle code remains the same */}
-                      </div>
                     </div>
 
                     <div className="flex flex-col flex-1">
@@ -217,14 +212,20 @@ export default function CoursesPage() {
                               size={14}
                               className="mr-1 text-[#004aad]/70"
                             />
-                            <span>{course.moduleCount} modules</span>
+                            <span>{course.modules.length} modules</span>
                           </div>
                           <div className="flex items-center">
                             <Clock
                               size={14}
                               className="mr-1 text-[#004aad]/70"
                             />
-                            <span>{course.totalSections} lessons</span>
+                            <span>
+                              {course.modules.reduce(
+                                (acc, module) => acc + module.sections.length,
+                                0
+                              )}{" "}
+                              lessons
+                            </span>
                           </div>
                         </div>
                       </CardContent>
@@ -309,7 +310,7 @@ export default function CoursesPage() {
               whileHover="hover"
             >
               <Card className="h-full overflow-hidden border-gray-200 bg-white/50 backdrop-blur-sm transition-all">
-                <div className="h-36 bg-gradient-to-r from-gray-200 to-gray-100 overflow-hidden relative">
+                <div className="h-64 bg-gradient-to-r from-gray-200 to-gray-100 overflow-hidden relative">
                   <div className="absolute inset-0">
                     {course.thumbnail ? (
                       <Image
@@ -341,11 +342,17 @@ export default function CoursesPage() {
                   <div className="flex items-center justify-between text-xs text-gray-500 space-x-2">
                     <div className="flex items-center">
                       <BookOpen size={14} className="mr-1 text-gray-400" />
-                      <span>{course.moduleCount} modules</span>
+                      <span>{course.modules.length} modules</span>
                     </div>
                     <div className="flex items-center">
                       <Clock size={14} className="mr-1 text-gray-400" />
-                      <span>{course.totalSections} lessons</span>
+                      <span>
+                        {course.modules.reduce(
+                          (acc, module) => acc + module.sections.length,
+                          0
+                        )}{" "}
+                        lessons
+                      </span>
                     </div>
                   </div>
                 </CardContent>
