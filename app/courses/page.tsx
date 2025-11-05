@@ -158,23 +158,21 @@ export default function CoursesPage() {
                   <Card className="h-full overflow-hidden border-gray-200 bg-white/50 backdrop-blur-sm transition-all flex flex-col">
                     <div className="relative">
                       {/* Thumbnail and progress elements remain the same */}
-                      <div className="h-64 bg-gradient-to-r from-gray-200 to-gray-100 overflow-hidden relative">
-                        <div className="absolute inset-0">
-                          {course.thumbnail ? (
-                            <Image
-                              src={course.thumbnail}
-                              alt={`${course.mainTitle} thumbnail`}
-                              fill
-                              quality={85}
-                              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                              className="object-cover"
-                            />
-                          ) : (
-                            <div className="flex items-center justify-center h-full">
-                              <BookOpen size={48} className="text-gray-400" />
-                            </div>
-                          )}
-                        </div>
+                      <div className="relative aspect-video overflow-hidden bg-gradient-to-r from-gray-200 to-gray-100">
+                        {course.thumbnail ? (
+                          <Image
+                            src={course.thumbnail}
+                            alt={`${course.mainTitle} thumbnail`}
+                            fill
+                            quality={85}
+                            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                            className="object-cover"
+                          />
+                        ) : (
+                          <div className="flex items-center justify-center h-full">
+                            <BookOpen size={48} className="text-gray-400" />
+                          </div>
+                        )}
 
                         {/* Progress overlay */}
                         <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-gray-300/50">
@@ -310,24 +308,23 @@ export default function CoursesPage() {
               whileHover="hover"
             >
               <Card className="h-full overflow-hidden border-gray-200 bg-white/50 backdrop-blur-sm transition-all">
-                <div className="h-64 bg-gradient-to-r from-gray-200 to-gray-100 overflow-hidden relative">
-                  <div className="absolute inset-0">
-                    {course.thumbnail ? (
-                      <Image
-                        src={course.thumbnail}
-                        alt={`${course.mainTitle} thumbnail`}
-                        fill
-                        quality={85}
-                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                        className="object-cover"
-                      />
-                    ) : (
-                      <div className="flex items-center justify-center h-full">
-                        <BookOpen size={48} className="text-gray-400" />
-                      </div>
-                    )}
-                  </div>
+                <div className="relative aspect-video overflow-hidden bg-gradient-to-r from-gray-200 to-gray-100">
+                  {course.thumbnail ? (
+                    <Image
+                      src={course.thumbnail}
+                      alt={`${course.mainTitle} thumbnail`}
+                      fill
+                      quality={85}
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                      className="object-cover"
+                    />
+                  ) : (
+                    <div className="flex items-center justify-center h-full">
+                      <BookOpen size={48} className="text-gray-400" />
+                    </div>
+                  )}
                 </div>
+                {/* </div> */}
 
                 <CardHeader className="pb-2 pt-4">
                   <CardTitle className="text-lg line-clamp-1">
