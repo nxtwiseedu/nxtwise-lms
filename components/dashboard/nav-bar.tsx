@@ -21,6 +21,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { auth } from "../../app/lib/firebase"; // Import Firebase auth
 import { signOut } from "firebase/auth"; // Import signOut method
 import { useAuth } from "@/contexts/auth-context"; // Import useAuth hook
+import { getFirestore, doc, onSnapshot } from "firebase/firestore";
 
 // Define types for navigation items
 type NavItem = {
@@ -48,10 +49,45 @@ const NavBar = ({ children }: NavBarProps) => {
   const { user } = useAuth();
   const [mounted, setMounted] = useState(false);
 
+  const [profile, setProfile] = useState<{
+    username?: string;
+    email?: string;
+  } | null>(null);
+  const [profileLoading, setProfileLoading] = useState(true);
+
   // Prevent hydration mismatch
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    // reset when auth user changes
+    setProfile(null);
+    setProfileLoading(true);
+
+    if (!user?.uid) {
+      setProfileLoading(false);
+      return;
+    }
+
+    const db = getFirestore();
+    const ref = doc(db, "users", user.uid);
+
+    const unsub = onSnapshot(
+      ref,
+      (snap) => {
+        setProfile(snap.data() ?? null);
+        setProfileLoading(false);
+      },
+      () => {
+        // on error, fall back to null but do not crash UI
+        setProfile(null);
+        setProfileLoading(false);
+      }
+    );
+
+    return () => unsub();
+  }, [user?.uid]);
 
   if (!mounted) return null;
 
@@ -175,13 +211,26 @@ const NavBar = ({ children }: NavBarProps) => {
                 <div className="flex items-center">
                   <Avatar className="h-10 w-10 bg-[#004aad]/10">
                     <AvatarFallback className="bg-[#004aad]/10 text-[#004aad]">
-                      {user.email ? user.email.charAt(0).toUpperCase() : "U"}
+                      {(() => {
+                        const letter =
+                          profile?.username?.charAt(0) ||
+                          user.displayName?.charAt(0) ||
+                          user.email?.charAt(0) ||
+                          "U";
+                        return letter.toUpperCase();
+                      })()}
                     </AvatarFallback>
                   </Avatar>
                   <div className="ml-3">
-                    <p className="text-xs text-gray-500">
-                      {user.email || "user@example.com"}
+                    <p className="text-sm font-medium">
+                      {profileLoading
+                        ? "Loading..."
+                        : profile?.username ||
+                          user.displayName ||
+                          user.email ||
+                          "User"}
                     </p>
+                    <p className="text-xs text-gray-500">{user.email || ""}</p>
                   </div>
                 </div>
                 <Button
