@@ -188,7 +188,7 @@ export function LoginForm({ form, isLoading, onSubmit }: LoginFormProps) {
                 <CardFooter className="flex flex-col space-y-4 relative">
                   <Button
                     type="submit"
-                    className="w-full h-11 text-base font-medium"
+                    className="w-full h-11 text-base font-medium bg-[#004aad] text-white hover:bg-[#003a8c] transition-colors duration-300 focus:ring-2 focus:ring-[#004aad]/20 focus:ring-offset-2 focus:ring-offset-white"
                     disabled={isLoading}
                   >
                     {isLoading ? "Signing in..." : "Sign in"}
