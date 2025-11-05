@@ -133,8 +133,7 @@ const NavBar = ({ children }: NavBarProps) => {
         transition={{ type: "spring", stiffness: 300, damping: 30 }}
       >
         <div className="flex flex-col h-full">
-          {/* Sidebar Header with Logo */}
-          <div className="h-16 border-b border-gray-100 flex items-center px-6">
+          <div className="h-24 border-b border-gray-100 flex items-center px-6">
             <div className="flex items-center space-x-3">
               <Image
                 src="/nxtwise-logo.png"
