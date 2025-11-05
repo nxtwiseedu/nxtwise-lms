@@ -588,9 +588,9 @@ export default function CourseView() {
                         <div className="flex items-center justify-center relative z-10">
                           <Check
                             size={14}
-                            className="sm:mr-1.5 group-hover:scale-110 transition-transform"
+                            className="sm:mr-1.5 text-white group-hover:scale-110 transition-transform"
                           />
-                          <span className="hidden sm:inline text-sm">
+                          <span className="hidden text-white sm:inline text-sm">
                             Mark Complete
                           </span>
                         </div>
