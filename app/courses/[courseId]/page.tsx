@@ -15,8 +15,8 @@ import {
   Lock,
   Paperclip,
   Download,
-  FileText,
-  Image as ImageIcon,
+  // FileText,
+  // Image as ImageIcon,
 } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -539,67 +539,97 @@ export default function CourseView() {
                 {Array.isArray(currentSectionData.materials) &&
                   currentSectionData.materials.length > 0 && (
                     <div className="mt-6 mb-6">
-                      <h4 className="text-sm font-medium text-slate-700 mb-3">
-                        Section Materials
-                      </h4>
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="text-sm font-semibold text-slate-800">
+                          Section Materials
+                        </h4>
+                        <div className="text-xs text-slate-500">
+                          <span className="inline-flex items-center gap-1">
+                            <Paperclip className="h-3 w-3" />
+                            {currentSectionData.materials.length} file
+                            {currentSectionData.materials.length > 1 ? "s" : ""}
+                          </span>
+                          {typeof currentSectionData.materials?.[0]?.size ===
+                            "number" && (
+                            <span className="ml-2">
+                              •{" "}
+                              {(
+                                currentSectionData.materials.reduce(
+                                  (acc, m) => acc + (m.size || 0),
+                                  0
+                                ) /
+                                1024 /
+                                1024
+                              ).toFixed(2)}{" "}
+                              MB total
+                            </span>
+                          )}
+                        </div>
+                      </div>
 
-                      <div className="bg-slate-50 rounded-lg border border-slate-100 p-3">
-                        <ul className="space-y-2">
+                      <div className="rounded-lg border border-slate-200 bg-white">
+                        <ul className="divide-y divide-slate-200">
                           {currentSectionData.materials.map((mat) => {
-                            // choose a simple icon by extension
+                            const name = mat.name || "Download";
                             const ext =
-                              mat.name?.split(".").pop()?.toLowerCase() || "";
-                            const isImage = [
-                              "png",
-                              "jpg",
-                              "jpeg",
-                              "webp",
-                              "gif",
-                            ].includes(ext);
+                              name.split(".").length > 1
+                                ? name.split(".").pop()?.toLowerCase() || ""
+                                : "";
+                            const sizeMb =
+                              typeof mat.size === "number"
+                                ? (mat.size / 1024 / 1024).toFixed(2)
+                                : null;
+
                             return (
                               <li
                                 key={mat.path}
-                                className="flex items-center justify-between bg-white p-3 rounded border border-slate-200"
+                                className="group flex items-center justify-between px-3 py-2 hover:bg-slate-50"
                               >
                                 <div className="min-w-0 flex items-center gap-2">
-                                  {isImage ? (
-                                    <ImageIcon className="h-4 w-4 text-slate-500 flex-shrink-0" />
-                                  ) : (
-                                    <FileText className="h-4 w-4 text-slate-500 flex-shrink-0" />
-                                  )}
-                                  <span
-                                    className="truncate text-sm text-slate-800"
-                                    title={mat.name}
-                                  >
-                                    {mat.name || "Download"}
+                                  <span className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-slate-200 bg-slate-100 text-slate-600">
+                                    <Paperclip className="h-3.5 w-3.5" />
                                   </span>
-                                  {typeof mat.size === "number" && (
-                                    <span className="text-xs text-slate-500">
-                                      {(mat.size / 1024 / 1024).toFixed(2)} MB
-                                    </span>
-                                  )}
+
+                                  <div className="min-w-0">
+                                    <div className="flex items-center gap-2">
+                                      <a
+                                        href={mat.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        title={name}
+                                        className="truncate text-sm font-medium text-slate-800 hover:underline"
+                                      >
+                                        {name}
+                                      </a>
+                                      {ext && (
+                                        <span className="inline-flex items-center rounded border border-slate-200 bg-slate-100 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-slate-600">
+                                          {ext}
+                                        </span>
+                                      )}
+                                    </div>
+
+                                    <div className="mt-0.5 text-xs text-slate-500">
+                                      {sizeMb ? `${sizeMb} MB` : "Size unknown"}
+                                    </div>
+                                  </div>
                                 </div>
 
-                                <a
-                                  href={mat.url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="inline-flex items-center text-xs px-2 py-1 border rounded hover:bg-slate-50"
-                                  aria-label={`Download ${mat.name}`}
-                                >
-                                  <Download className="h-4 w-4 mr-1" />
-                                  Download
-                                </a>
+                                <div className="ml-3 flex items-center gap-2">
+                                  <a
+                                    href={mat.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center rounded border border-slate-200 px-2 py-1 text-xs text-slate-700 hover:bg-slate-100"
+                                    aria-label={`Download ${name}`}
+                                  >
+                                    <Download className="mr-1 h-4 w-4" />
+                                    Download
+                                  </a>
+                                </div>
                               </li>
                             );
                           })}
                         </ul>
-
-                        <div className="mt-2 flex items-center text-xs text-slate-500">
-                          <Paperclip className="h-3 w-3 mr-1" />
-                          {currentSectionData.materials.length} file
-                          {currentSectionData.materials.length > 1 ? "s" : ""}
-                        </div>
                       </div>
                     </div>
                   )}
