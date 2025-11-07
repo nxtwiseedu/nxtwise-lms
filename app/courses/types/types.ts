@@ -4,6 +4,14 @@ export interface Video {
   name?: string; // Make it optional for backward compatibility
 }
 
+export type Material = {
+  name: string;
+  url: string;
+  path: string;
+  size?: number;
+  contentType?: string;
+};
+
 export interface Section {
   id: string;
   title: string;
@@ -13,6 +21,7 @@ export interface Section {
   videoId?: string; // Legacy field for backward compatibility
   duration?: number; // Legacy duration field
   videos?: Video[]; // New field for multiple videos
+  materials?: Material[]; // New field for section materials
 }
 
 export interface Module {
