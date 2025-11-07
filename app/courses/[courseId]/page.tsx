@@ -13,6 +13,10 @@ import {
   Menu,
   X,
   Lock,
+  Paperclip,
+  Download,
+  FileText,
+  Image as ImageIcon,
 } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -531,6 +535,74 @@ export default function CourseView() {
                     </p>
                   </div>
                 )}
+
+                {Array.isArray(currentSectionData.materials) &&
+                  currentSectionData.materials.length > 0 && (
+                    <div className="mt-6 mb-6">
+                      <h4 className="text-sm font-medium text-slate-700 mb-3">
+                        Section Materials
+                      </h4>
+
+                      <div className="bg-slate-50 rounded-lg border border-slate-100 p-3">
+                        <ul className="space-y-2">
+                          {currentSectionData.materials.map((mat) => {
+                            // choose a simple icon by extension
+                            const ext =
+                              mat.name?.split(".").pop()?.toLowerCase() || "";
+                            const isImage = [
+                              "png",
+                              "jpg",
+                              "jpeg",
+                              "webp",
+                              "gif",
+                            ].includes(ext);
+                            return (
+                              <li
+                                key={mat.path}
+                                className="flex items-center justify-between bg-white p-3 rounded border border-slate-200"
+                              >
+                                <div className="min-w-0 flex items-center gap-2">
+                                  {isImage ? (
+                                    <ImageIcon className="h-4 w-4 text-slate-500 flex-shrink-0" />
+                                  ) : (
+                                    <FileText className="h-4 w-4 text-slate-500 flex-shrink-0" />
+                                  )}
+                                  <span
+                                    className="truncate text-sm text-slate-800"
+                                    title={mat.name}
+                                  >
+                                    {mat.name || "Download"}
+                                  </span>
+                                  {typeof mat.size === "number" && (
+                                    <span className="text-xs text-slate-500">
+                                      {(mat.size / 1024 / 1024).toFixed(2)} MB
+                                    </span>
+                                  )}
+                                </div>
+
+                                <a
+                                  href={mat.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center text-xs px-2 py-1 border rounded hover:bg-slate-50"
+                                  aria-label={`Download ${mat.name}`}
+                                >
+                                  <Download className="h-4 w-4 mr-1" />
+                                  Download
+                                </a>
+                              </li>
+                            );
+                          })}
+                        </ul>
+
+                        <div className="mt-2 flex items-center text-xs text-slate-500">
+                          <Paperclip className="h-3 w-3 mr-1" />
+                          {currentSectionData.materials.length} file
+                          {currentSectionData.materials.length > 1 ? "s" : ""}
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                 <Separator className="my-6 bg-slate-100" />
 
